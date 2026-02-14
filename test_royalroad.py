@@ -1,0 +1,106 @@
+import unittest
+from unittest.mock import MagicMock
+from royalroad import RoyalRoadSource
+
+class TestRoyalRoadSource(unittest.TestCase):
+    def setUp(self):
+        self.rr = RoyalRoadSource()
+        self.rr.requester.get = MagicMock()
+
+    def test_get_chapter_list(self):
+        html = """
+        <html>
+            <body>
+                <table id="chapters">
+                    <tr class="chapter-row">
+                        <td><a href="/fiction/123/chapter/1">Chapter 1: The Beginning</a></td>
+                    </tr>
+                    <tr class="chapter-row">
+                        <td><a href="/fiction/123/chapter/2">Chapter 2: The End</a></td>
+                    </tr>
+                </table>
+            </body>
+        </html>
+        """
+        self.rr.requester.get.return_value.text = html
+        chapters = self.rr.get_chapter_list("http://example.com")
+
+        self.assertEqual(len(chapters), 2)
+        self.assertEqual(chapters[0]['title'], "Chapter 1: The Beginning")
+        self.assertEqual(chapters[0]['url'], "https://www.royalroad.com/fiction/123/chapter/1")
+        self.assertEqual(chapters[1]['title'], "Chapter 2: The End")
+
+    def test_get_chapter_content_removes_unwanted(self):
+        html = """
+        <html>
+            <body>
+                <div class="chapter-inner chapter-content">
+                    <p>This is the story content.</p>
+
+                    <div class="nav-buttons">
+                        <a href="/prev">Previous Chapter</a>
+                        <a href="/next">Next Chapter</a>
+                    </div>
+
+                    <div class="portlet">
+                        <p>Support the Author on Patreon!</p>
+                    </div>
+
+                    <p>Some more story content.</p>
+
+                    <p>Donate to me!</p>
+                </div>
+            </body>
+        </html>
+        """
+        self.rr.requester.get.return_value.text = html
+        content = self.rr.get_chapter_content("http://example.com/chapter/1")
+
+        # Check that story content is present
+        self.assertIn("This is the story content.", content)
+        self.assertIn("Some more story content.", content)
+
+        # Check that unwanted content IS NOT present (after fix)
+        self.assertNotIn("Next Chapter", content, "Should not contain 'Next Chapter'")
+        self.assertNotIn("Previous Chapter", content, "Should not contain 'Previous Chapter'")
+        self.assertNotIn("Support the Author", content, "Should not contain 'Support the Author'")
+        self.assertNotIn("Donate", content, "Should not contain 'Donate' (as independent text)")
+
+    def test_get_chapter_content_preserves_dialogue(self):
+        html = """
+        <html>
+            <body>
+                <div class="chapter-inner chapter-content">
+                    <p>"I will not Donate to their cause," he said.</p>
+                    <p>She replied, "Support the Author? No way."</p>
+                </div>
+            </body>
+        </html>
+        """
+        self.rr.requester.get.return_value.text = html
+        content = self.rr.get_chapter_content("http://example.com/chapter/2")
+
+        # Should still be present because it's part of a longer sentence/dialogue
+        self.assertIn("Donate", content)
+        self.assertIn("Support the Author", content)
+
+    def test_get_chapter_content_removes_portlet_partial_match(self):
+        html = """
+        <html>
+            <body>
+                <div class="chapter-inner chapter-content">
+                    <p>Story content.</p>
+                    <div class="author-note-portlet">
+                        <p>This is an author note.</p>
+                    </div>
+                </div>
+            </body>
+        </html>
+        """
+        self.rr.requester.get.return_value.text = html
+        content = self.rr.get_chapter_content("http://example.com/chapter/3")
+
+        self.assertNotIn("author note", content)
+
+if __name__ == '__main__':
+    unittest.main()

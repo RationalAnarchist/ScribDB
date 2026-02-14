@@ -83,6 +83,42 @@ class RoyalRoadSource(BaseSource):
             for tag in content_div(['script', 'style']):
                 tag.decompose()
 
+            # Remove known unwanted elements
+            for tag in content_div.select('.nav-buttons, .author-note-portlet'):
+                tag.decompose()
+
+            # Remove specific text patterns
+            unwanted_phrases = ['Next Chapter', 'Previous Chapter', 'Support the Author', 'Donate', 'Patreon', 'Ko-fi']
+
+            # Find candidate elements to remove based on text
+            candidates = []
+            for text_node in content_div.find_all(string=True):
+                if any(phrase in text_node for phrase in unwanted_phrases):
+                    parent = text_node.parent
+                    if parent and parent != content_div:
+                        candidates.append(parent)
+
+            # Remove unique candidates
+            for element in set(candidates):
+                # Check if element is still in tree
+                if element.parent:
+                    text = element.get_text(strip=True)
+                    if element.name == 'a':
+                        if any(phrase in text for phrase in unwanted_phrases):
+                            element.decompose()
+                    elif element.name in ['p', 'div', 'span', 'strong', 'em']:
+                        classes = element.get('class', [])
+                        # Handle partial match for portlet classes (e.g. author-note-portlet)
+                        if classes and any('portlet' in cls for cls in classes):
+                            element.decompose()
+                        elif len(text) < 100:
+                            # Avoid removing dialogue which usually contains quotes
+                            if '"' in text or '“' in text or '”' in text:
+                                continue
+
+                            if any(phrase in text for phrase in unwanted_phrases):
+                                element.decompose()
+
             # Return inner HTML
             return content_div.decode_contents()
 
