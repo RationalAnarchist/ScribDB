@@ -1,0 +1,116 @@
+from sqlalchemy import create_engine, Column, Integer, String, Boolean, ForeignKey
+from sqlalchemy.orm import declarative_base, relationship, sessionmaker, Session
+from typing import Optional
+from core_logic import SourceManager
+from royalroad import RoyalRoadSource
+
+Base = declarative_base()
+
+class Story(Base):
+    __tablename__ = 'stories'
+
+    id = Column(Integer, primary_key=True)
+    title = Column(String, nullable=False)
+    author = Column(String, nullable=False)
+    source_url = Column(String, unique=True, nullable=False)
+    cover_path = Column(String, nullable=True)
+
+    chapters = relationship("Chapter", back_populates="story", cascade="all, delete-orphan")
+
+    def __repr__(self):
+        return f"<Story(title='{self.title}', author='{self.author}')>"
+
+class Chapter(Base):
+    __tablename__ = 'chapters'
+
+    id = Column(Integer, primary_key=True)
+    story_id = Column(Integer, ForeignKey('stories.id'), nullable=False)
+    title = Column(String, nullable=False)
+    source_url = Column(String, nullable=False)
+    local_path = Column(String, nullable=True)
+    is_downloaded = Column(Boolean, default=False)
+
+    story = relationship("Story", back_populates="chapters")
+
+    def __repr__(self):
+        return f"<Chapter(title='{self.title}', story_id={self.story_id})>"
+
+# Setup database
+DB_URL = "sqlite:///library.db"
+engine = create_engine(DB_URL)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+def init_db():
+    """Creates the database tables."""
+    Base.metadata.create_all(bind=engine)
+
+def sync_story(url: str, session: Optional[Session] = None):
+    """
+    Fetches the latest chapters for the story at the given URL and updates the database.
+    """
+    # 1. Setup SourceManager
+    manager = SourceManager()
+    manager.register_provider(RoyalRoadSource())
+
+    # 2. Get Provider
+    provider = manager.get_provider_for_url(url)
+    if not provider:
+        raise ValueError(f"No provider found for URL: {url}")
+
+    # 3. Fetch Data
+    metadata = provider.get_metadata(url)
+    chapters_data = provider.get_chapter_list(url)
+
+    # 4. Update Database
+    should_close = False
+    if session is None:
+        session = SessionLocal()
+        should_close = True
+
+    try:
+        # Check if story exists
+        story = session.query(Story).filter(Story.source_url == url).first()
+
+        if not story:
+            story = Story(
+                title=metadata.get('title', 'Unknown'),
+                author=metadata.get('author', 'Unknown'),
+                source_url=url,
+                cover_path=None
+            )
+            session.add(story)
+            session.flush() # Ensure ID is available
+        else:
+            # Update metadata if needed
+            story.title = metadata.get('title', story.title)
+            story.author = metadata.get('author', story.author)
+
+        # If story is new, story.chapters is empty.
+        # If story exists, story.chapters contains current DB chapters.
+        existing_chapters = {}
+        if story.chapters:
+             existing_chapters = {c.source_url: c for c in story.chapters}
+
+        for chapter_data in chapters_data:
+            chapter_url = chapter_data['url']
+            chapter_title = chapter_data['title']
+
+            if chapter_url not in existing_chapters:
+                new_chapter = Chapter(
+                    title=chapter_title,
+                    source_url=chapter_url
+                )
+                # Associate with story
+                story.chapters.append(new_chapter)
+
+        session.commit()
+
+    except Exception as e:
+        session.rollback()
+        raise e
+    finally:
+        if should_close:
+            session.close()
+
+if __name__ == "__main__":
+    init_db()
