@@ -1,22 +1,21 @@
-import requests
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 from typing import List, Dict
 
 from core_logic import BaseSource
+from polite_requester import PoliteRequester
 
 class RoyalRoadSource(BaseSource):
     BASE_URL = "https://www.royalroad.com"
+
+    def __init__(self):
+        self.requester = PoliteRequester()
 
     def identify(self, url: str) -> bool:
         return 'royalroad.com' in url
 
     def get_metadata(self, url: str) -> Dict:
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-        }
-        response = requests.get(url, headers=headers)
-        response.raise_for_status()
+        response = self.requester.get(url)
         soup = BeautifulSoup(response.text, 'html.parser')
 
         title_tag = soup.find('h1')
@@ -54,11 +53,7 @@ class RoyalRoadSource(BaseSource):
         }
 
     def get_chapter_list(self, url: str) -> List[Dict]:
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-        }
-        response = requests.get(url, headers=headers)
-        response.raise_for_status()
+        response = self.requester.get(url)
         soup = BeautifulSoup(response.text, 'html.parser')
 
         chapters = []
@@ -76,11 +71,7 @@ class RoyalRoadSource(BaseSource):
         return chapters
 
     def get_chapter_content(self, chapter_url: str) -> str:
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-        }
-        response = requests.get(chapter_url, headers=headers)
-        response.raise_for_status()
+        response = self.requester.get(chapter_url)
         soup = BeautifulSoup(response.text, 'html.parser')
 
         content_div = soup.select_one('.chapter-inner')
@@ -93,7 +84,6 @@ class RoyalRoadSource(BaseSource):
                 tag.decompose()
 
             # Return inner HTML
-            # We can use decode_contents() to get inner HTML string
             return content_div.decode_contents()
 
         return ""
