@@ -174,6 +174,67 @@ class StoryManager:
         finally:
             session.close()
 
+    def update_library(self):
+        """
+        Iterates through all stories in the database.
+        For each story, fetches the current list of chapters from the web.
+        Compares the web list to the database list.
+        Creates a new Chapter record with status='pending' for any URL that does not exist in the database.
+        """
+        logger.info("Starting library update...")
+        session = SessionLocal()
+        try:
+            # Iterate through all stories
+            stories = session.query(Story).all()
+
+            for story in stories:
+                try:
+                    logger.info(f"Checking updates for story: {story.title}")
+
+                    provider = self.source_manager.get_provider_for_url(story.source_url)
+                    if not provider:
+                        logger.warning(f"No provider found for story: {story.title} ({story.source_url})")
+                        continue
+
+                    # Fetch current chapters from source
+                    remote_chapters = provider.get_chapter_list(story.source_url)
+
+                    # Get existing chapters from DB
+                    existing_chapter_urls = {c.source_url for c in story.chapters}
+
+                    new_chapters_count = 0
+                    for i, chap_data in enumerate(remote_chapters):
+                        if chap_data['url'] not in existing_chapter_urls:
+                            new_chapter = Chapter(
+                                title=chap_data['title'],
+                                source_url=chap_data['url'],
+                                story_id=story.id,
+                                index=i + 1,
+                                status='pending'
+                            )
+                            session.add(new_chapter)
+                            new_chapters_count += 1
+
+                    story.last_checked = func.now()
+                    if new_chapters_count > 0:
+                        story.last_updated = func.now()
+                        logger.info(f"Found {new_chapters_count} new chapters for '{story.title}'")
+                    else:
+                        logger.info(f"No new chapters for '{story.title}'")
+
+                    session.commit()
+
+                except Exception as e:
+                    logger.error(f"Error updating story '{story.title}': {e}")
+                    session.rollback()
+
+            logger.info("Library update completed.")
+
+        except Exception as e:
+            logger.error(f"Critical error during library update: {e}")
+        finally:
+            session.close()
+
     def download_missing_chapters(self, story_id: int):
         """
         Downloads content for all chapters of the story that are not yet downloaded.

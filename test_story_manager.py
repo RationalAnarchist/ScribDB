@@ -137,5 +137,43 @@ class TestStoryManager(unittest.TestCase):
         pending_chapters = self.manager.get_pending_chapters()
         self.assertEqual(len(pending_chapters), 0)
 
+    def test_update_library(self):
+        # 1. Add a story with 2 chapters
+        self.mock_provider.get_chapter_list.return_value = [
+            {'title': 'Chapter 1', 'url': 'http://example.com/1'},
+            {'title': 'Chapter 2', 'url': 'http://example.com/2'}
+        ]
+        story_id = self.manager.add_story("http://example.com/story")
+
+        # Verify initial state
+        session = SessionLocal()
+        story = session.query(Story).filter(Story.id == story_id).first()
+        self.assertEqual(len(story.chapters), 2)
+        session.close()
+
+        # 2. Update mock provider to return 3 chapters
+        self.mock_provider.get_chapter_list.return_value = [
+            {'title': 'Chapter 1', 'url': 'http://example.com/1'},
+            {'title': 'Chapter 2', 'url': 'http://example.com/2'},
+            {'title': 'Chapter 3', 'url': 'http://example.com/3'}
+        ]
+
+        # 3. Call update_library
+        self.manager.update_library()
+
+        # 4. Verify new chapter is added
+        session = SessionLocal()
+        story = session.query(Story).filter(Story.id == story_id).first()
+        self.assertEqual(len(story.chapters), 3)
+
+        # Check specific chapter
+        new_chapter = session.query(Chapter).filter(Chapter.source_url == 'http://example.com/3').first()
+        self.assertIsNotNone(new_chapter)
+        self.assertEqual(new_chapter.title, 'Chapter 3')
+        self.assertEqual(new_chapter.status, 'pending')
+        self.assertEqual(new_chapter.index, 3)
+
+        session.close()
+
 if __name__ == '__main__':
     unittest.main()
