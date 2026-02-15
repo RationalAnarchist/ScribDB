@@ -49,6 +49,22 @@ class Chapter(Base):
     def __repr__(self):
         return f"<Chapter(title='{self.title}', story_id={self.story_id})>"
 
+class DownloadHistory(Base):
+    __tablename__ = 'download_history'
+
+    id = Column(Integer, primary_key=True)
+    chapter_id = Column(Integer, ForeignKey('chapters.id'), nullable=False)
+    story_id = Column(Integer, ForeignKey('stories.id'), nullable=False)
+    status = Column(String, nullable=False)  # 'downloaded', 'failed'
+    timestamp = Column(DateTime, server_default=func.now())
+    details = Column(String, nullable=True)
+
+    chapter = relationship("Chapter")
+    story = relationship("Story")
+
+    def __repr__(self):
+        return f"<DownloadHistory(chapter_id={self.chapter_id}, status='{self.status}')>"
+
 class Source(Base):
     __tablename__ = 'sources'
 
