@@ -19,6 +19,46 @@
                 <h1 class="text-4xl font-bold mb-2 text-white">{{ story.title }}</h1>
                 <p class="text-xl text-blue-400 mb-6 font-medium">{{ story.author }}</p>
 
+                <!-- Metadata Grid -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 text-sm">
+                    <div>
+                        <span class="block text-gray-400 uppercase text-xs font-semibold">Status</span>
+                        <span class="text-white">{{ story.publication_status or 'Unknown' }}</span>
+                    </div>
+                    <div>
+                        <span class="block text-gray-400 uppercase text-xs font-semibold">Language</span>
+                        <span class="text-white">{{ story.language or 'Unknown' }}</span>
+                    </div>
+                    <div>
+                        <span class="block text-gray-400 uppercase text-xs font-semibold">Rating</span>
+                        <span class="text-white">{{ story.rating or 'N/A' }}</span>
+                    </div>
+                    <div>
+                        <span class="block text-gray-400 uppercase text-xs font-semibold">Source</span>
+                         <a href="{{ story.source_url }}" target="_blank" class="text-blue-400 hover:text-blue-300 truncate block">Link</a>
+                    </div>
+                </div>
+
+                <!-- Description -->
+                {% if story.description %}
+                <div class="mb-6">
+                    <h3 class="text-lg font-semibold text-gray-300 mb-2">Synopsis</h3>
+                    <div class="text-gray-300 bg-gray-900/50 p-4 rounded-lg text-sm leading-relaxed max-h-60 overflow-y-auto whitespace-pre-line">{{ story.description }}</div>
+                </div>
+                {% endif %}
+
+                <!-- Tags -->
+                {% if story.tags %}
+                <div class="mb-6">
+                    <h3 class="text-lg font-semibold text-gray-300 mb-2">Tags</h3>
+                    <div class="flex flex-wrap gap-2">
+                        {% for tag in story.tags.split(',') %}
+                        <span class="bg-gray-700 text-gray-300 px-2 py-1 rounded text-xs">{{ tag.strip() }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
                 <div class="space-y-4">
                     <h3 class="text-lg font-semibold text-gray-300">Available Volumes</h3>
                     <div class="flex flex-wrap gap-3">

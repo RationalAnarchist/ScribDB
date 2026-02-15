@@ -25,6 +25,11 @@ class Story(Base):
     last_updated = Column(DateTime, nullable=True)
     last_checked = Column(DateTime, nullable=True)
     status = Column(String, default='Monitoring')
+    description = Column(String, nullable=True)
+    tags = Column(String, nullable=True)
+    rating = Column(String, nullable=True)
+    language = Column(String, nullable=True)
+    publication_status = Column(String, default='Unknown')
 
     chapters = relationship("Chapter", back_populates="story", cascade="all, delete-orphan")
 

@@ -1,6 +1,7 @@
 import unittest
 from unittest.mock import MagicMock
 from ao3 import AO3Source
+from bs4 import BeautifulSoup
 
 class TestAO3Source(unittest.TestCase):
     def setUp(self):
@@ -22,17 +23,54 @@ class TestAO3Source(unittest.TestCase):
                         <blockquote class="userstuff summary">
                             <p>This is a summary.</p>
                         </blockquote>
+                        <dl class="tags">
+                            <dt class="rating tags">Rating:</dt>
+                            <dd class="rating tags">
+                                <ul class="commas">
+                                    <li><a class="tag" href="/tags/General%20Audiences">General Audiences</a></li>
+                                </ul>
+                            </dd>
+                            <dt class="language">Language:</dt>
+                            <dd class="language">English</dd>
+                            <dt class="fandom tags">Fandoms:</dt>
+                            <dd class="fandom tags">
+                                <ul class="commas">
+                                    <li><a class="tag" href="/tags/Harry%20Potter">Harry Potter</a></li>
+                                </ul>
+                            </dd>
+                            <dt class="freeform tags">Additional Tags:</dt>
+                            <dd class="freeform tags">
+                                <ul class="commas">
+                                    <li><a class="tag" href="/tags/Magic">Magic</a></li>
+                                    <li><a class="tag" href="/tags/Adventure">Adventure</a></li>
+                                </ul>
+                            </dd>
+                            <dt class="stats">Stats:</dt>
+                            <dd class="stats">
+                                <dl class="stats">
+                                    <dt class="status">Status:</dt>
+                                    <dd class="status">Completed</dd>
+                                    <dt class="chapters">Chapters:</dt>
+                                    <dd class="chapters">10/10</dd>
+                                </dl>
+                            </dd>
+                        </dl>
                     </div>
                 </div>
             </body>
         </html>
         """
-        self.ao3.requester.get.return_value.text = html
+        self.ao3.requester.get.return_value = MagicMock(text=html)
         metadata = self.ao3.get_metadata("https://archiveofourown.org/works/123")
 
         self.assertEqual(metadata['title'], "My Awesome Story")
         self.assertEqual(metadata['author'], "testuser")
         self.assertIn("This is a summary.", metadata['description'])
+        self.assertEqual(metadata['rating'], "General Audiences")
+        self.assertEqual(metadata['language'], "English")
+        self.assertIn("Harry Potter", metadata['tags'])
+        self.assertIn("Magic", metadata['tags'])
+        self.assertEqual(metadata['publication_status'], "Completed")
 
     def test_get_chapter_list_multi(self):
         # Mock navigate page

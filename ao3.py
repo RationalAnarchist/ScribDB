@@ -40,11 +40,57 @@ class AO3Source(BaseSource):
         # Cover (AO3 doesn't have standard covers, leaving None)
         cover_url = None
 
+        # Tags
+        tags = []
+        # Fandoms
+        for t in soup.select('dd.fandom.tags li a.tag'):
+            tags.append(t.get_text(strip=True))
+
+        # Freeform (Additional Tags)
+        for t in soup.select('dd.freeform.tags li a.tag'):
+            tags.append(t.get_text(strip=True))
+
+        # Rating
+        rating = None
+        rating_tag = soup.select_one('dd.rating.tags li a.tag')
+        if rating_tag:
+            rating = rating_tag.get_text(strip=True)
+
+        # Language
+        language = "English"
+        language_dd = soup.select_one('dd.language')
+        if language_dd:
+            language = language_dd.get_text(strip=True)
+
+        # Status
+        publication_status = "Unknown"
+        chapters_dd = soup.select_one('dd.chapters')
+        if chapters_dd:
+            chapter_text = chapters_dd.get_text(strip=True)
+            # Format: "X/Y" or "X/?"
+            if '/' in chapter_text:
+                current, total = chapter_text.split('/', 1)
+                if total == '?':
+                    publication_status = "Ongoing"
+                elif current == total:
+                    publication_status = "Completed"
+                else:
+                    publication_status = "Ongoing"
+
+        # Sometimes stats has "Completed: YYYY-MM-DD"
+        status_dt = soup.find('dt', class_='status')
+        if status_dt and 'Completed' in status_dt.get_text(strip=True):
+             publication_status = "Completed"
+
         return {
             'title': title,
             'author': author,
             'description': description,
-            'cover_url': cover_url
+            'cover_url': cover_url,
+            'tags': ", ".join(tags) if tags else None,
+            'rating': rating,
+            'language': language,
+            'publication_status': publication_status
         }
 
     def get_chapter_list(self, url: str) -> List[Dict]:

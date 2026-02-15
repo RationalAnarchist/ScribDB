@@ -20,12 +20,12 @@ Before adding complex features, we must ensure the foundation is robust.
 
 These features bring Scrollarr closer to the expected functionality of Sonarr/Radarr.
 
-4.  **Enhanced Metadata (The "Indexer" Aspect)**
-    -   **Feature:** Store rich metadata for stories.
-    -   **Implementation:**
-        -   Add `description`, `tags`, `rating`, `language`, `status` (Completed/Ongoing/Hiatus/Dropped) to the `Story` table.
-        -   Update scrapers (`RoyalRoadSource`, `AO3Source`) to fetch this data.
-        -   Display this metadata in the Story Details UI.
+4.  ~~**Enhanced Metadata (The "Indexer" Aspect)**~~
+    -   ~~**Feature:** Store rich metadata for stories.~~
+    -   ~~**Implementation:**~~
+        -   ~~Add `description`, `tags`, `rating`, `language`, `status` (Completed/Ongoing/Hiatus/Dropped) to the `Story` table.~~
+        -   ~~Update scrapers (`RoyalRoadSource`, `AO3Source`) to fetch this data.~~
+        -   ~~Display this metadata in the Story Details UI.~~
 5.  **Search & Discovery (The "Search" Tab)**
     -   **Feature:** Allow users to search for new content within the app, rather than pasting URLs.
     -   **Implementation:**
