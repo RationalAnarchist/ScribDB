@@ -64,50 +64,19 @@ class JobManager:
         session = SessionLocal()
 
         try:
-            monitored_stories = session.query(Story).filter(Story.is_monitored == True).all()
-
-            for story in monitored_stories:
-                logger.info(f"Checking '{story.title}'...")
-                try:
-                    provider = self.story_manager.source_manager.get_provider_for_url(story.source_url)
-                    if not provider:
-                        logger.warning(f"No provider found for: {story.title}")
-                        continue
-
-                    remote_chapters = provider.get_chapter_list(story.source_url)
-
-                    # Get existing chapters from DB
-                    existing_urls = {c.source_url for c in story.chapters}
-
-                    new_chapters_count = 0
-                    for i, chapter_data in enumerate(remote_chapters):
-                        c_url = chapter_data['url']
-                        if c_url not in existing_urls:
-                            new_chapter = Chapter(
-                                title=chapter_data['title'],
-                                source_url=c_url,
-                                story_id=story.id,
-                                index=i + 1,
-                                status='pending'
-                            )
-                            session.add(new_chapter)
-                            new_chapters_count += 1
-
-                    story.last_checked = func.now()
-                    if new_chapters_count > 0:
-                        story.last_updated = func.now()
-                        logger.info(f"Found {new_chapters_count} new chapters for '{story.title}'.")
-
-                    session.commit()
-
-                except Exception as e:
-                    logger.error(f"Error checking updates for '{story.title}': {e}")
-                    session.rollback()
-
+            # Only get IDs to close session early and avoid holding it during network requests
+            monitored_story_ids = [s.id for s in session.query(Story).filter(Story.is_monitored == True).all()]
         except Exception as e:
-            logger.error(f"Error during update check: {e}")
+            logger.error(f"Error fetching monitored stories: {e}")
+            monitored_story_ids = []
         finally:
             session.close()
+
+        for story_id in monitored_story_ids:
+            try:
+                self.story_manager.check_story_updates(story_id)
+            except Exception as e:
+                logger.error(f"Error updating story {story_id}: {e}")
 
     def process_download_queue(self):
         """

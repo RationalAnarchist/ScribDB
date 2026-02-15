@@ -40,9 +40,9 @@ These features bring Scrollarr closer to the expected functionality of Sonarr/Ra
             -   ~~**Queue:** Currently downloading chapters with progress (if possible) or status.~~
             -   ~~**History:** List of recently downloaded/failed chapters with timestamps.~~
         -   ~~Add "Retry" button for failed downloads.~~
-7.  **Manual Interaction (The "Interactive Search")**
-    -   **Feature:** Manually trigger a search/update for a specific story or chapter.
-    -   **Implementation:** Add "Search for Updates" and "Force Download" buttons on the Story Details page.
+7.  ~~**Manual Interaction (The "Interactive Search")**~~
+    -   ~~**Feature:** Manually trigger a search/update for a specific story or chapter.~~
+    -   ~~**Implementation:** Add "Search for Updates" and "Force Download" buttons on the Story Details page.~~
 
 ## Phase 3: Advanced Organization & Customization (Medium Term)
 
