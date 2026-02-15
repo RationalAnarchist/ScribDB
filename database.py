@@ -1,11 +1,14 @@
 import os
-from sqlalchemy import create_engine, Column, Integer, String, Boolean, ForeignKey, text, DateTime
+import sys
+from sqlalchemy import create_engine, Column, Integer, String, Boolean, ForeignKey, text, DateTime, inspect
 from sqlalchemy.orm import declarative_base, relationship, sessionmaker, Session
 from sqlalchemy.sql import func
 from typing import Optional
 from core_logic import SourceManager
 from royalroad import RoyalRoadSource
 from config import config_manager
+import alembic.config
+import alembic.command
 
 Base = declarative_base()
 
@@ -66,61 +69,46 @@ if not DB_URL:
 engine = create_engine(DB_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
+def run_migrations():
+    """Run Alembic migrations programmatically."""
+    print("Checking for database migrations...")
+
+    # Locate alembic.ini
+    alembic_ini_path = os.path.join(os.getcwd(), "alembic.ini")
+    if not os.path.exists(alembic_ini_path):
+        print(f"Warning: alembic.ini not found at {alembic_ini_path}. Skipping migrations.")
+        return
+
+    alembic_cfg = alembic.config.Config(alembic_ini_path)
+
+    # Check if tables exist but no alembic_version (existing non-alembic DB)
+    inspector = inspect(engine)
+    try:
+        tables = inspector.get_table_names()
+    except Exception:
+        # DB might not exist yet
+        tables = []
+
+    if "stories" in tables and "alembic_version" not in tables:
+        print("Existing database detected without alembic version. Stamping head.")
+        try:
+            alembic.command.stamp(alembic_cfg, "head")
+        except Exception as e:
+            print(f"Error stamping database: {e}")
+            # If stamp fails, we might be in trouble, but let's try to proceed
+
+    print("Running alembic upgrade head...")
+    try:
+        alembic.command.upgrade(alembic_cfg, "head")
+        print("Migrations completed.")
+    except Exception as e:
+        print(f"Error running migrations: {e}")
+        raise e
+
 def init_db(engine=engine):
     """Creates the database tables and runs migrations."""
-    Base.metadata.create_all(bind=engine)
-    migrate_db(engine)
-
-def migrate_db(engine):
-    """
-    Checks for missing columns and adds them if necessary.
-    Specifically checks for 'monitored' in 'stories' table.
-    """
-    with engine.connect() as conn:
-        # Check for monitored column in stories
-        # SQLite specific check
-        try:
-            result = conn.execute(text("PRAGMA table_info(stories)"))
-            columns = [row[1] for row in result.fetchall()]
-            if 'monitored' not in columns:
-                conn.execute(text("ALTER TABLE stories ADD COLUMN monitored BOOLEAN DEFAULT 1"))
-            if 'last_updated' not in columns:
-                conn.execute(text("ALTER TABLE stories ADD COLUMN last_updated DATETIME"))
-            if 'status' not in columns:
-                conn.execute(text("ALTER TABLE stories ADD COLUMN status VARCHAR DEFAULT 'Monitoring'"))
-            if 'is_monitored' not in columns:
-                conn.execute(text("ALTER TABLE stories ADD COLUMN is_monitored BOOLEAN DEFAULT 1"))
-                conn.execute(text("UPDATE stories SET is_monitored = monitored WHERE is_monitored IS NULL"))
-            if 'last_checked' not in columns:
-                conn.execute(text("ALTER TABLE stories ADD COLUMN last_checked DATETIME"))
-        except Exception as e:
-            print(f"Migration error (stories): {e}")
-
-        try:
-            result = conn.execute(text("PRAGMA table_info(chapters)"))
-            columns = [row[1] for row in result.fetchall()]
-            if 'volume_number' not in columns:
-                conn.execute(text("ALTER TABLE chapters ADD COLUMN volume_number INTEGER DEFAULT 1"))
-                conn.execute(text("UPDATE chapters SET volume_number = 1 WHERE volume_number IS NULL"))
-            if 'index' not in columns:
-                conn.execute(text("ALTER TABLE chapters ADD COLUMN 'index' INTEGER"))
-            if 'status' not in columns:
-                conn.execute(text("ALTER TABLE chapters ADD COLUMN status VARCHAR DEFAULT 'pending'"))
-                conn.execute(text("UPDATE chapters SET status = 'downloaded' WHERE is_downloaded = 1"))
-                conn.execute(text("UPDATE chapters SET status = 'pending' WHERE is_downloaded = 0 OR is_downloaded IS NULL"))
-        except Exception as e:
-            print(f"Migration error (chapters): {e}")
-
-        # Check for sources population
-        try:
-            result = conn.execute(text("SELECT count(*) FROM sources"))
-            count = result.scalar()
-            if count == 0:
-                 conn.execute(text("INSERT INTO sources (name, key, is_enabled) VALUES ('Royal Road', 'royalroad', 1)"))
-                 conn.execute(text("INSERT INTO sources (name, key, is_enabled) VALUES ('Archive of Our Own', 'ao3', 1)"))
-                 conn.commit()
-        except Exception as e:
-            print(f"Migration error (sources population): {e}")
+    # We now rely on Alembic to create tables and manage schema
+    run_migrations()
 
 def sync_story(url: str, session: Optional[Session] = None):
     """

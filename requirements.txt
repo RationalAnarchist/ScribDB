@@ -7,3 +7,4 @@ ebooklib
 apscheduler
 jinja2
 python-multipart
+alembic
