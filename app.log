@@ -1,0 +1,33 @@
+2026-02-15 10:05:02,811 - INFO - StoryManager initialized and providers registered.
+INFO:     Started server process [5853]
+INFO:     Waiting for application startup.
+2026-02-15 10:05:02,855 - INFO - Starting worker thread...
+2026-02-15 10:05:02,855 - INFO - Worker started...
+2026-02-15 10:05:02,856 - INFO - Worker thread started.
+2026-02-15 10:05:02,856 - INFO - Starting scheduler...
+2026-02-15 10:05:02,860 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-02-15 10:05:02,860 - INFO - Added job "check_for_updates" to job store "default"
+2026-02-15 10:05:02,861 - INFO - Scheduler started
+2026-02-15 10:05:02,875 - INFO - Scheduler started.
+INFO:     Application startup complete.
+2026-02-15 10:05:02,876 - INFO - No pending chapters.
+2026-02-15 10:05:02,876 - INFO - Sleeping for 58.25 seconds...
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:59782 - "GET /settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59782 - "GET /api/settings HTTP/1.1" 200 OK
+2026-02-15 10:05:25,070 - INFO - Configuration saved.
+2026-02-15 10:05:25,070 - INFO - Configuration saved.
+2026-02-15 10:05:25,071 - INFO - Configuration saved.
+2026-02-15 10:05:25,071 - INFO - Configuration saved.
+2026-02-15 10:05:25,072 - INFO - Configuration saved.
+2026-02-15 10:05:25,072 - INFO - Configuration saved.
+2026-02-15 10:05:25,072 - INFO - Configuration saved.
+2026-02-15 10:05:25,073 - INFO - Configuration saved.
+2026-02-15 10:05:25,073 - INFO - Configuration saved.
+INFO:     127.0.0.1:59782 - "POST /api/settings HTTP/1.1" 200 OK
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+2026-02-15 10:05:59,203 - INFO - Scheduler has been shut down
+2026-02-15 10:05:59,203 - INFO - Scheduler shut down.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [5853]
