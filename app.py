@@ -1,4 +1,3 @@
-import threading
 import logging
 import os
 from typing import Optional, List
@@ -12,10 +11,8 @@ from pydantic import BaseModel
 
 from database import SessionLocal, Story, Chapter, Source
 from story_manager import StoryManager
-from worker import worker
 from ebook_builder import EbookBuilder
-from scheduler import check_for_updates
-from apscheduler.schedulers.background import BackgroundScheduler
+from job_manager import JobManager
 from config import config_manager
 
 # Configure logging
@@ -57,33 +54,21 @@ class SettingsRequest(BaseModel):
     database_url: str = "sqlite:///library.db"
     log_level: str = "INFO"
 
-# Scheduler instance
-scheduler = None
+# JobManager instance
+job_manager = JobManager()
 
 @app.on_event("startup")
 async def startup_event():
-    """Start the background worker thread and scheduler."""
-    global scheduler
-    logger.info("Starting worker thread...")
-    t = threading.Thread(target=worker, daemon=True)
-    t.start()
-    logger.info("Worker thread started.")
-
-    logger.info("Starting scheduler...")
-    scheduler = BackgroundScheduler()
-    # Use configurable interval
-    interval = config_manager.get("update_interval_hours", 1)
-    scheduler.add_job(check_for_updates, 'interval', hours=interval)
-    scheduler.start()
-    logger.info("Scheduler started.")
+    """Start the background job manager."""
+    global job_manager
+    job_manager.start()
 
 @app.on_event("shutdown")
 async def shutdown_event():
-    """Shutdown the scheduler."""
-    global scheduler
-    if scheduler:
-        scheduler.shutdown()
-        logger.info("Scheduler shut down.")
+    """Shutdown the job manager."""
+    global job_manager
+    if job_manager:
+        job_manager.stop()
 
 @app.get("/", response_class=HTMLResponse)
 async def read_root(request: Request, db: Session = Depends(get_db)):
@@ -160,6 +145,11 @@ async def update_settings(settings: SettingsRequest):
         config_manager.set("worker_sleep_max", settings.worker_sleep_max)
         config_manager.set("database_url", settings.database_url)
         config_manager.set("log_level", settings.log_level)
+
+        # Update jobs with new settings
+        if job_manager:
+            job_manager.update_jobs()
+
         return {"message": "Settings updated successfully"}
     except Exception as e:
         logger.error(f"Error updating settings: {e}")
