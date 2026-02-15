@@ -1,6 +1,7 @@
 import argparse
 import sys
 from story_manager import StoryManager
+from logger import setup_logging
 
 def add_story_command(url):
     print(f"Adding story from {url}...")
@@ -57,6 +58,7 @@ def compile_story_command(story_id):
         sys.exit(1)
 
 def main():
+    setup_logging()
     parser = argparse.ArgumentParser(description="Scrollarr CLI")
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 

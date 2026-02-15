@@ -14,9 +14,10 @@ from story_manager import StoryManager
 from ebook_builder import EbookBuilder
 from job_manager import JobManager
 from config import config_manager
+from logger import setup_logging
 
 # Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+setup_logging(log_level=config_manager.get('log_level'), log_file='logs/scrollarr.log')
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Scrollarr")
