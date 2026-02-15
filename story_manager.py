@@ -5,7 +5,8 @@ from sqlalchemy.orm import Session, joinedload
 from sqlalchemy.sql import func
 from core_logic import SourceManager
 from royalroad import RoyalRoadSource
-from database import Story, Chapter, SessionLocal, init_db, engine
+from ao3 import AO3Source
+from database import Story, Chapter, Source, SessionLocal, init_db, engine
 from config import config_manager
 
 # Configure logging
@@ -22,8 +23,36 @@ class StoryManager:
         init_db()
 
         self.source_manager = SourceManager()
-        self.source_manager.register_provider(RoyalRoadSource())
+        self.reload_providers()
         logger.info("StoryManager initialized and providers registered.")
+
+    def reload_providers(self):
+        """
+        Reloads providers based on enabled sources in the database.
+        """
+        self.source_manager.clear_providers()
+        session = SessionLocal()
+        try:
+            enabled_sources = session.query(Source).filter(Source.is_enabled == True).all()
+            enabled_keys = {s.key for s in enabled_sources}
+
+            # Map keys to provider classes
+            providers_map = {
+                'royalroad': RoyalRoadSource,
+                'ao3': AO3Source
+            }
+
+            registered_count = 0
+            for key, provider_class in providers_map.items():
+                if key in enabled_keys:
+                    self.source_manager.register_provider(provider_class())
+                    registered_count += 1
+
+            logger.info(f"Reloaded providers. {registered_count} providers active.")
+        except Exception as e:
+            logger.error(f"Error reloading providers: {e}")
+        finally:
+            session.close()
 
     def add_story(self, url: str) -> int:
         """

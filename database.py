@@ -46,6 +46,17 @@ class Chapter(Base):
     def __repr__(self):
         return f"<Chapter(title='{self.title}', story_id={self.story_id})>"
 
+class Source(Base):
+    __tablename__ = 'sources'
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String, unique=True, nullable=False)
+    key = Column(String, unique=True, nullable=False)
+    is_enabled = Column(Boolean, default=True)
+
+    def __repr__(self):
+        return f"<Source(name='{self.name}', enabled={self.is_enabled})>"
+
 # Setup database
 # Priority: Environment Variable > Config file > Default
 DB_URL = os.getenv("DATABASE_URL")
@@ -99,6 +110,17 @@ def migrate_db(engine):
                 conn.execute(text("UPDATE chapters SET status = 'pending' WHERE is_downloaded = 0 OR is_downloaded IS NULL"))
         except Exception as e:
             print(f"Migration error (chapters): {e}")
+
+        # Check for sources population
+        try:
+            result = conn.execute(text("SELECT count(*) FROM sources"))
+            count = result.scalar()
+            if count == 0:
+                 conn.execute(text("INSERT INTO sources (name, key, is_enabled) VALUES ('Royal Road', 'royalroad', 1)"))
+                 conn.execute(text("INSERT INTO sources (name, key, is_enabled) VALUES ('Archive of Our Own', 'ao3', 1)"))
+                 conn.commit()
+        except Exception as e:
+            print(f"Migration error (sources population): {e}")
 
 def sync_story(url: str, session: Optional[Session] = None):
     """
