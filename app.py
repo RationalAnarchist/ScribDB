@@ -14,6 +14,8 @@ from database import SessionLocal, Story, Chapter
 from story_manager import StoryManager
 from worker import worker
 from ebook_builder import EbookBuilder
+from scheduler import check_for_updates
+from apscheduler.schedulers.background import BackgroundScheduler
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -43,13 +45,31 @@ def get_db():
 class UrlRequest(BaseModel):
     url: str
 
+# Scheduler instance
+scheduler = None
+
 @app.on_event("startup")
 async def startup_event():
-    """Start the background worker thread."""
+    """Start the background worker thread and scheduler."""
+    global scheduler
     logger.info("Starting worker thread...")
     t = threading.Thread(target=worker, daemon=True)
     t.start()
     logger.info("Worker thread started.")
+
+    logger.info("Starting scheduler...")
+    scheduler = BackgroundScheduler()
+    scheduler.add_job(check_for_updates, 'interval', hours=1)
+    scheduler.start()
+    logger.info("Scheduler started.")
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Shutdown the scheduler."""
+    global scheduler
+    if scheduler:
+        scheduler.shutdown()
+        logger.info("Scheduler shut down.")
 
 @app.get("/", response_class=HTMLResponse)
 async def read_root(request: Request, db: Session = Depends(get_db)):

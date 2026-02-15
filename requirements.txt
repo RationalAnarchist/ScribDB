@@ -1,0 +1,9 @@
+fastapi
+uvicorn[standard]
+sqlalchemy
+beautifulsoup4
+requests
+ebooklib
+apscheduler
+jinja2
+python-multipart

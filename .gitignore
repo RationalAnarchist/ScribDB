@@ -9,3 +9,5 @@ venv/
 .DS_Store
 *.db
 *.epub
+saved_stories/
+logs/
