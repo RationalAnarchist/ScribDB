@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block title %}Sources - Scrollarr{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <div class="md:flex md:items-center md:justify-between mb-8">
+        <div class="flex-1 min-w-0">
+            <h2 class="text-2xl font-bold leading-7 text-white sm:text-3xl sm:truncate">Sources</h2>
+            <p class="mt-1 text-sm text-gray-400">Manage available story providers.</p>
+        </div>
+    </div>
+
+    <div class="bg-gray-800 shadow rounded-lg overflow-hidden">
+        <ul role="list" class="divide-y divide-gray-700" id="sources-list">
+            <!-- Sources will be loaded here -->
+        </ul>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    async function loadSources() {
+        try {
+            const response = await fetch('/api/sources');
+            const sources = await response.json();
+
+            const list = document.getElementById('sources-list');
+            list.innerHTML = '';
+
+            sources.forEach(source => {
+                const li = document.createElement('li');
+                li.className = "px-6 py-4 flex items-center justify-between hover:bg-gray-750 transition-colors";
+
+                const content = `
+                    <div class="flex items-center">
+                        <div class="ml-3">
+                            <p class="text-sm font-medium text-white">${source.name}</p>
+                            <p class="text-xs text-gray-500">${source.key}</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center">
+                        <button onclick="toggleSource('${source.key}')" class="${source.is_enabled ? 'bg-green-600' : 'bg-gray-600'} relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" role="switch" aria-checked="${source.is_enabled}">
+                            <span aria-hidden="true" class="${source.is_enabled ? 'translate-x-5' : 'translate-x-0'} pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transform ring-0 transition ease-in-out duration-200"></span>
+                        </button>
+                    </div>
+                `;
+                li.innerHTML = content;
+                list.appendChild(li);
+            });
+
+        } catch (error) {
+            console.error('Error loading sources:', error);
+        }
+    }
+
+    async function toggleSource(key) {
+        try {
+            const response = await fetch(`/api/sources/${key}/toggle`, {
+                method: 'POST'
+            });
+            if (response.ok) {
+                // Reload to update UI
+                loadSources();
+            } else {
+                alert("Failed to toggle source");
+            }
+        } catch (error) {
+            console.error('Error toggling source:', error);
+            alert("Error toggling source");
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', loadSources);
+</script>
+{% endblock %}

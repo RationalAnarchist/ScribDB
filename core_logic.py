@@ -31,6 +31,9 @@ class SourceManager:
     def register_provider(self, provider: BaseSource):
         self.providers.append(provider)
 
+    def clear_providers(self):
+        self.providers = []
+
     def get_provider_for_url(self, url: str) -> Optional[BaseSource]:
         for provider in self.providers:
             if provider.identify(url):

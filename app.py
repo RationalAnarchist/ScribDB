@@ -10,7 +10,7 @@ from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
-from database import SessionLocal, Story, Chapter
+from database import SessionLocal, Story, Chapter, Source
 from story_manager import StoryManager
 from worker import worker
 from ebook_builder import EbookBuilder
@@ -119,6 +119,11 @@ async def settings_page(request: Request):
     """Render the settings page."""
     return templates.TemplateResponse("settings.html", {"request": request})
 
+@app.get("/sources", response_class=HTMLResponse)
+async def sources_page(request: Request):
+    """Render the sources page."""
+    return templates.TemplateResponse("sources.html", {"request": request})
+
 @app.get("/api/queue")
 async def get_queue(db: Session = Depends(get_db)):
     """Get pending chapters."""
@@ -159,6 +164,28 @@ async def update_settings(settings: SettingsRequest):
     except Exception as e:
         logger.error(f"Error updating settings: {e}")
         raise HTTPException(status_code=500, detail="Failed to update settings")
+
+@app.get("/api/sources")
+async def get_sources(db: Session = Depends(get_db)):
+    """Get all sources."""
+    sources = db.query(Source).all()
+    return [{"name": s.name, "key": s.key, "is_enabled": s.is_enabled} for s in sources]
+
+@app.post("/api/sources/{source_key}/toggle")
+async def toggle_source(source_key: str, db: Session = Depends(get_db)):
+    """Toggle a source enabled state."""
+    source = db.query(Source).filter(Source.key == source_key).first()
+    if not source:
+        raise HTTPException(status_code=404, detail="Source not found")
+
+    source.is_enabled = not source.is_enabled
+    db.commit()
+
+    # Reload providers in story_manager
+    if story_manager:
+        story_manager.reload_providers()
+
+    return {"message": f"Source {source.name} {'enabled' if source.is_enabled else 'disabled'}", "is_enabled": source.is_enabled}
 
 @app.post("/api/lookup")
 async def lookup_story(request: UrlRequest):
