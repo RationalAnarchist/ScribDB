@@ -23,6 +23,20 @@ class BaseSource(ABC):
         """Returns the raw HTML/Text content of a single chapter."""
         pass
 
+    @abstractmethod
+    def search(self, query: str) -> List[Dict]:
+        """
+        Searches for stories matching the query.
+        Returns a list of dictionaries containing metadata (title, url, author, etc.).
+        """
+        pass
+
+    def set_config(self, config: Dict):
+        """
+        Sets provider-specific configuration (e.g. cookies, API keys).
+        """
+        pass
+
 # The "Dispatcher" that picks the right source
 class SourceManager:
     def __init__(self):

@@ -28,6 +28,13 @@ class PoliteRequester:
             'Sec-Fetch-Site': 'none',
             'Sec-Fetch-User': '?1',
         }
+        self.cookies = {}
+
+    def set_cookies(self, cookies: Dict):
+        """
+        Sets cookies for subsequent requests.
+        """
+        self.cookies = cookies
 
     def get(self, url: str) -> requests.Response:
         """
@@ -42,6 +49,6 @@ class PoliteRequester:
         delay = random.uniform(*self.delay_range)
         time.sleep(delay)
 
-        response = requests.get(url, headers=self.headers)
+        response = requests.get(url, headers=self.headers, cookies=self.cookies)
         response.raise_for_status()
         return response

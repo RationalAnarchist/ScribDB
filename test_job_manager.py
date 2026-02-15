@@ -52,30 +52,11 @@ class TestJobManager(unittest.TestCase):
         self.session.add(story)
         self.session.commit()
 
-        # Add 1 local chapter
-        chapter = Chapter(title="Chapter 1", source_url="http://example.com/ch1", story_id=story.id)
-        self.session.add(chapter)
-        self.session.commit()
-
-        # Mock Provider
-        mock_provider = MagicMock()
-        jm.story_manager.source_manager.get_provider_for_url.return_value = mock_provider
-
-        # Mock remote chapters (2 chapters, so 1 new)
-        mock_provider.get_chapter_list.return_value = [
-            {'title': 'Chapter 1', 'url': 'http://example.com/ch1'},
-            {'title': 'Chapter 2', 'url': 'http://example.com/ch2'}
-        ]
-
         # Run function
         jm.check_for_updates()
 
-        # Verify new chapter was added
-        chapters = self.session.query(Chapter).filter(Chapter.story_id == story.id).all()
-        self.assertEqual(len(chapters), 2)
-        new_chapter = next(c for c in chapters if c.source_url == 'http://example.com/ch2')
-        self.assertEqual(new_chapter.title, 'Chapter 2')
-        self.assertEqual(new_chapter.status, 'pending')
+        # Verify StoryManager.check_story_updates was called
+        jm.story_manager.check_story_updates.assert_called_with(story.id)
 
     @patch('job_manager.StoryManager')
     def test_check_for_updates_monitored_story_no_updates(self, MockStoryManager):
@@ -87,21 +68,9 @@ class TestJobManager(unittest.TestCase):
         self.session.add(story)
         self.session.commit()
 
-        chapter = Chapter(title="Chapter 1", source_url="http://example.com/ch1", story_id=story.id)
-        self.session.add(chapter)
-        self.session.commit()
-
-        mock_provider = MagicMock()
-        jm.story_manager.source_manager.get_provider_for_url.return_value = mock_provider
-
-        mock_provider.get_chapter_list.return_value = [
-            {'title': 'Chapter 1', 'url': 'http://example.com/ch1'}
-        ]
-
         jm.check_for_updates()
 
-        chapters = self.session.query(Chapter).filter(Chapter.story_id == story.id).all()
-        self.assertEqual(len(chapters), 1)
+        jm.story_manager.check_story_updates.assert_called_with(story.id)
 
     @patch('job_manager.StoryManager')
     def test_check_for_updates_not_monitored_story(self, MockStoryManager):
@@ -112,12 +81,9 @@ class TestJobManager(unittest.TestCase):
         self.session.add(story)
         self.session.commit()
 
-        mock_provider = MagicMock()
-        jm.story_manager.source_manager.get_provider_for_url.return_value = mock_provider
-
         jm.check_for_updates()
 
-        mock_provider.get_chapter_list.assert_not_called()
+        jm.story_manager.check_story_updates.assert_not_called()
 
     @patch('job_manager.StoryManager')
     @patch('builtins.open', new_callable=mock_open)

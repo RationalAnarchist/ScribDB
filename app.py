@@ -1,6 +1,6 @@
 import logging
 import os
-from typing import Optional, List
+from typing import Optional, List, Dict
 
 from fastapi import FastAPI, Depends, HTTPException, status, Request
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
@@ -110,6 +110,46 @@ async def settings_page(request: Request):
 async def sources_page(request: Request):
     """Render the sources page."""
     return templates.TemplateResponse("sources.html", {"request": request})
+
+@app.get("/search", response_class=HTMLResponse)
+async def search_page(request: Request):
+    """Render the search page."""
+    return templates.TemplateResponse("search.html", {"request": request})
+
+@app.get("/api/search")
+async def search_stories(query: str, provider: Optional[str] = None):
+    """Search for stories."""
+    if not story_manager:
+        raise HTTPException(status_code=500, detail="StoryManager not initialized")
+
+    try:
+        results = story_manager.search(query, provider)
+        return results
+    except Exception as e:
+        logger.error(f"Search error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/sources/{source_key}/config")
+async def config_source(source_key: str, config: Dict, db: Session = Depends(get_db)):
+    """Update source configuration."""
+    source = db.query(Source).filter(Source.key == source_key).first()
+    if not source:
+        raise HTTPException(status_code=404, detail="Source not found")
+
+    try:
+        # Store as JSON string
+        import json
+        source.config = json.dumps(config)
+        db.commit()
+
+        # Reload providers to apply new config
+        if story_manager:
+            story_manager.reload_providers()
+
+        return {"message": f"Configuration for {source.name} updated"}
+    except Exception as e:
+        logger.error(f"Config update error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/queue")
 async def get_queue(db: Session = Depends(get_db)):

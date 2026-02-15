@@ -4,10 +4,11 @@ Scrollarr is an "Arr"-style application for monitoring, downloading, and organiz
 
 ## Features
 
-- **Monitor Stories:** Add stories by URL (currently supports Royal Road).
+- **Monitor Stories:** Add stories by URL or Search (supports Royal Road and AO3).
+- **Search & Discovery:** Search for stories directly within the app.
 - **Auto-Download:** Automatically checks for and downloads new chapters.
 - **Ebook Compilation:** Compile downloaded chapters into EPUB volumes.
-- **Web Interface:** Simple dashboard to view progress and manage stories.
+- **Web Interface:** Simple dashboard to view progress, manage stories, and configure providers.
 - **Background Tasks:** Runs background workers to handle downloads and updates efficiently.
 
 ## Prerequisites
@@ -82,6 +83,7 @@ You can also use the CLI for specific tasks.
 
 - **Database:** By default, Scrollarr uses a SQLite database named `library.db`. You can change this by setting the `DATABASE_URL` environment variable.
 - **Storage:** Downloaded chapters are saved in the `saved_stories/` directory.
+- **Provider Settings:** Configure specific provider settings (e.g., AO3 cookies) via the "Sources" page in the Web Interface.
 
 ## Raspberry Pi Deployment (Production)
 
