@@ -259,6 +259,34 @@ async def get_progress(db: Session = Depends(get_db)):
         })
     return result
 
+@app.post("/api/story/{story_id}/update")
+def update_story(story_id: int):
+    """Force update a single story."""
+    if not story_manager:
+        raise HTTPException(status_code=500, detail="StoryManager not initialized")
+    try:
+        new_chapters = story_manager.check_story_updates(story_id)
+        return {"message": f"Update complete. Found {new_chapters} new chapters.", "new_chapters": new_chapters}
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        logger.error(f"Update error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/story/{story_id}/retry")
+def retry_story(story_id: int):
+    """Retry all failed chapters for a story."""
+    if not story_manager:
+        raise HTTPException(status_code=500, detail="StoryManager not initialized")
+    try:
+        count = story_manager.retry_failed_chapters(story_id)
+        return {"message": f"Queued {count} failed chapters for retry.", "count": count}
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        logger.error(f"Retry error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.get("/story/{story_id}", response_class=HTMLResponse)
 async def story_details(story_id: int, request: Request, db: Session = Depends(get_db)):
     """Render story details page."""

@@ -175,5 +175,49 @@ class TestStoryManager(unittest.TestCase):
 
         session.close()
 
+    def test_check_story_updates(self):
+        # 1. Add story with 2 chapters
+        story_id = self.manager.add_story("http://example.com/story")
+
+        # 2. Update provider to have 3 chapters
+        self.mock_provider.get_chapter_list.return_value = [
+            {'title': 'Chapter 1', 'url': 'http://example.com/1'},
+            {'title': 'Chapter 2', 'url': 'http://example.com/2'},
+            {'title': 'Chapter 3', 'url': 'http://example.com/3'}
+        ]
+
+        # 3. Call check_story_updates
+        new_count = self.manager.check_story_updates(story_id)
+
+        # 4. Verify
+        self.assertEqual(new_count, 1)
+
+        session = SessionLocal()
+        chapters = session.query(Chapter).filter(Chapter.story_id == story_id).all()
+        self.assertEqual(len(chapters), 3)
+        session.close()
+
+    def test_retry_failed_chapters(self):
+        # 1. Add story
+        story_id = self.manager.add_story("http://example.com/story")
+
+        # 2. Mark a chapter as failed
+        session = SessionLocal()
+        chapter = session.query(Chapter).filter(Chapter.story_id == story_id, Chapter.index == 1).first()
+        chapter.status = 'failed'
+        session.commit()
+        session.close()
+
+        # 3. Call retry
+        count = self.manager.retry_failed_chapters(story_id)
+
+        # 4. Verify
+        self.assertEqual(count, 1)
+
+        session = SessionLocal()
+        chapter = session.query(Chapter).filter(Chapter.story_id == story_id, Chapter.index == 1).first()
+        self.assertEqual(chapter.status, 'pending')
+        session.close()
+
 if __name__ == '__main__':
     unittest.main()

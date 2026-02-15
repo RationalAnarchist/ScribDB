@@ -347,3 +347,99 @@ class StoryManager:
                     # Optionally continue to next chapter or break
         finally:
             session.close()
+
+    def check_story_updates(self, story_id: int):
+        """
+        Fetches metadata and chapter list for a single story and updates the database.
+        """
+        session = SessionLocal()
+        try:
+            story = session.query(Story).filter(Story.id == story_id).first()
+            if not story:
+                raise ValueError(f"Story with ID {story_id} not found")
+
+            logger.info(f"Checking updates for story: {story.title}")
+
+            provider = self.source_manager.get_provider_for_url(story.source_url)
+            if not provider:
+                raise ValueError(f"No provider found for story: {story.title}")
+
+            # Fetch metadata and update story
+            try:
+                metadata = provider.get_metadata(story.source_url)
+                story.title = metadata.get('title', story.title)
+                story.author = metadata.get('author', story.author)
+                story.cover_path = metadata.get('cover_url', story.cover_path)
+                story.description = metadata.get('description', story.description)
+                story.tags = metadata.get('tags', story.tags)
+                story.rating = metadata.get('rating', story.rating)
+                story.language = metadata.get('language', story.language)
+                story.publication_status = metadata.get('publication_status', story.publication_status)
+            except Exception as meta_err:
+                logger.warning(f"Failed to update metadata for {story.title}: {meta_err}")
+
+            # Fetch current chapters from source
+            remote_chapters = provider.get_chapter_list(story.source_url)
+
+            # Get existing chapters from DB
+            existing_chapter_urls = {c.source_url for c in story.chapters}
+
+            new_chapters_count = 0
+            for i, chap_data in enumerate(remote_chapters):
+                if chap_data['url'] not in existing_chapter_urls:
+                    new_chapter = Chapter(
+                        title=chap_data['title'],
+                        source_url=chap_data['url'],
+                        story_id=story.id,
+                        index=i + 1,
+                        status='pending'
+                    )
+                    session.add(new_chapter)
+                    new_chapters_count += 1
+
+            story.last_checked = func.now()
+            if new_chapters_count > 0:
+                story.last_updated = func.now()
+                logger.info(f"Found {new_chapters_count} new chapters for '{story.title}'")
+            else:
+                logger.info(f"No new chapters for '{story.title}'")
+
+            session.commit()
+            return new_chapters_count
+
+        except Exception as e:
+            logger.error(f"Error checking updates for story {story_id}: {e}")
+            session.rollback()
+            raise e
+        finally:
+            session.close()
+
+    def retry_failed_chapters(self, story_id: int):
+        """
+        Resets 'failed' chapters to 'pending' for the given story.
+        """
+        session = SessionLocal()
+        try:
+            story = session.query(Story).filter(Story.id == story_id).first()
+            if not story:
+                raise ValueError(f"Story with ID {story_id} not found")
+
+            failed_chapters = session.query(Chapter).filter(
+                Chapter.story_id == story_id,
+                Chapter.status == 'failed'
+            ).all()
+
+            count = 0
+            for chapter in failed_chapters:
+                chapter.status = 'pending'
+                count += 1
+
+            session.commit()
+            logger.info(f"Queued {count} failed chapters for retry for story '{story.title}'")
+            return count
+        except Exception as e:
+            logger.error(f"Error retrying chapters for story {story_id}: {e}")
+            session.rollback()
+            raise e
+        finally:
+            session.close()
