@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block title %}Download Queue - Scrollarr{% endblock %}
+
+{% block content %}
+    <header class="mb-8">
+        <h1 class="text-3xl font-bold">Download Queue</h1>
+    </header>
+
+    <div class="bg-gray-800 rounded-lg p-6 shadow-lg">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="text-gray-400 border-b border-gray-700 text-sm uppercase tracking-wider">
+                        <th class="p-3 font-semibold">Story</th>
+                        <th class="p-3 font-semibold">Chapter</th>
+                        <th class="p-3 font-semibold text-right">Status</th>
+                    </tr>
+                </thead>
+                <tbody id="queue-body" class="divide-y divide-gray-700">
+                    <!-- Queue items will be populated via JS -->
+                    <tr class="animate-pulse">
+                        <td colspan="3" class="p-4 text-center text-gray-500">Loading queue...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+    <script>
+        async function fetchQueue() {
+            try {
+                const response = await fetch('/api/queue');
+                if (!response.ok) throw new Error('Failed to fetch queue');
+                const data = await response.json();
+
+                const tbody = document.getElementById('queue-body');
+                tbody.innerHTML = '';
+
+                if (data.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="3" class="p-4 text-center text-gray-500">Queue is empty.</td></tr>`;
+                    return;
+                }
+
+                data.forEach(item => {
+                    const tr = document.createElement('tr');
+                    tr.className = 'hover:bg-gray-700/50 transition-colors';
+                    tr.innerHTML = `
+                        <td class="p-3 font-medium text-gray-200">${item.story_title}</td>
+                        <td class="p-3 text-gray-400">${item.chapter_title}</td>
+                        <td class="p-3 text-right">
+                            <span class="bg-yellow-900/50 text-yellow-300 py-1 px-3 rounded-full text-xs font-semibold border border-yellow-800 animate-pulse">Pending</span>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+
+            } catch (err) {
+                console.error("Queue fetch error:", err);
+                document.getElementById('queue-body').innerHTML = `<tr><td colspan="3" class="p-4 text-center text-red-500">Error loading queue.</td></tr>`;
+            }
+        }
+
+        // Fetch on load and every 5 seconds
+        fetchQueue();
+        setInterval(fetchQueue, 5000);
+    </script>
+{% endblock %}
