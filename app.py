@@ -110,6 +110,11 @@ async def sources_page(request: Request):
     """Render the sources page."""
     return templates.TemplateResponse("sources.html", {"request": request})
 
+@app.get("/search", response_class=HTMLResponse)
+async def search_page(request: Request):
+    """Render the search page."""
+    return templates.TemplateResponse("search.html", {"request": request})
+
 @app.get("/api/queue")
 async def get_queue(db: Session = Depends(get_db)):
     """Get pending chapters."""
@@ -161,6 +166,31 @@ async def get_sources(db: Session = Depends(get_db)):
     """Get all sources."""
     sources = db.query(Source).all()
     return [{"name": s.name, "key": s.key, "is_enabled": s.is_enabled} for s in sources]
+
+@app.get("/api/search")
+async def search_stories(query: str, source: Optional[str] = None):
+    """Search for stories."""
+    if not story_manager:
+        raise HTTPException(status_code=500, detail="StoryManager not initialized")
+
+    results = []
+
+    if source and source != "all":
+        provider = story_manager.source_manager.get_provider_by_key(source)
+        if provider:
+            try:
+                results.extend(provider.search(query))
+            except Exception as e:
+                logger.error(f"Error searching {source}: {e}")
+    else:
+        # Search all providers
+        for provider in story_manager.source_manager.providers:
+            try:
+                results.extend(provider.search(query))
+            except Exception as e:
+                logger.error(f"Error searching {provider.key}: {e}")
+
+    return results
 
 @app.post("/api/sources/{source_key}/toggle")
 async def toggle_source(source_key: str, db: Session = Depends(get_db)):

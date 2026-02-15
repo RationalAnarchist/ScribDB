@@ -9,6 +9,10 @@ from polite_requester import PoliteRequester
 class AO3Source(BaseSource):
     BASE_URL = "https://archiveofourown.org"
 
+    @property
+    def key(self) -> str:
+        return "ao3"
+
     def __init__(self):
         self.requester = PoliteRequester()
 
@@ -104,6 +108,11 @@ class AO3Source(BaseSource):
                 pass
 
         return chapters
+
+    def search(self, query: str) -> List[Dict]:
+        # AO3 search is blocked by Cloudflare in this environment (525 error).
+        # Returning empty list for now.
+        return []
 
     def get_chapter_content(self, chapter_url: str) -> str:
         response = self.requester.get(chapter_url)

@@ -23,6 +23,20 @@ class BaseSource(ABC):
         """Returns the raw HTML/Text content of a single chapter."""
         pass
 
+    @abstractmethod
+    def search(self, query: str) -> List[Dict]:
+        """
+        Searches for stories matching the query.
+        Returns a list of dicts: {title, url, author, description, cover_url}
+        """
+        pass
+
+    @property
+    @abstractmethod
+    def key(self) -> str:
+        """Returns a unique key for this provider (e.g. 'royalroad', 'ao3')."""
+        pass
+
 # The "Dispatcher" that picks the right source
 class SourceManager:
     def __init__(self):
@@ -37,5 +51,11 @@ class SourceManager:
     def get_provider_for_url(self, url: str) -> Optional[BaseSource]:
         for provider in self.providers:
             if provider.identify(url):
+                return provider
+        return None
+
+    def get_provider_by_key(self, key: str) -> Optional[BaseSource]:
+        for provider in self.providers:
+            if provider.key == key:
                 return provider
         return None

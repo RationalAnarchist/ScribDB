@@ -1,5 +1,5 @@
 from bs4 import BeautifulSoup
-from urllib.parse import urljoin
+from urllib.parse import urljoin, quote
 from typing import List, Dict
 
 from core_logic import BaseSource
@@ -7,6 +7,10 @@ from polite_requester import PoliteRequester
 
 class RoyalRoadSource(BaseSource):
     BASE_URL = "https://www.royalroad.com"
+
+    @property
+    def key(self) -> str:
+        return "royalroad"
 
     def __init__(self):
         self.requester = PoliteRequester()
@@ -69,6 +73,43 @@ class RoyalRoadSource(BaseSource):
                         'url': chapter_url
                     })
         return chapters
+
+    def search(self, query: str) -> List[Dict]:
+        search_url = f"{self.BASE_URL}/fictions/search?title={quote(query)}"
+        response = self.requester.get(search_url)
+        soup = BeautifulSoup(response.text, 'html.parser')
+
+        results = []
+        for item in soup.select('.fiction-list-item'):
+            title_tag = item.select_one('.fiction-title a')
+            if not title_tag:
+                continue
+
+            title = title_tag.get_text(strip=True)
+            url = urljoin(self.BASE_URL, title_tag['href'])
+
+            cover_img = item.select_one('figure img')
+            cover_url = None
+            if cover_img and cover_img.has_attr('src'):
+                src = cover_img['src']
+                if 'nocover' not in src:
+                    cover_url = src
+
+            description = "No description available."
+            desc_div = item.select_one('div[id^="description-"]')
+            if desc_div:
+                description = desc_div.get_text("\n", strip=True)
+
+            results.append({
+                'title': title,
+                'url': url,
+                'author': 'Unknown',
+                'description': description,
+                'cover_url': cover_url,
+                'source_key': self.key
+            })
+
+        return results
 
     def get_chapter_content(self, chapter_url: str) -> str:
         response = self.requester.get(chapter_url)

@@ -26,12 +26,12 @@ These features bring Scrollarr closer to the expected functionality of Sonarr/Ra
         -   Add `description`, `tags`, `rating`, `language`, `status` (Completed/Ongoing/Hiatus/Dropped) to the `Story` table.
         -   Update scrapers (`RoyalRoadSource`, `AO3Source`) to fetch this data.
         -   Display this metadata in the Story Details UI.
-5.  **Search & Discovery (The "Search" Tab)**
-    -   **Feature:** Allow users to search for new content within the app, rather than pasting URLs.
-    -   **Implementation:**
-        -   Add a `search(query)` method to `BaseSource`.
-        -   Implement search scraping for Royal Road and AO3.
-        -   Create a "Search" page in the UI to query providers and "Add" stories directly from results.
+5.  ~~**Search & Discovery (The "Search" Tab)**~~
+    -   ~~**Feature:** Allow users to search for new content within the app, rather than pasting URLs.~~
+    -   ~~**Implementation:**~~
+        -   ~~Add a `search(query)` method to `BaseSource`.~~
+        -   ~~Implement search scraping for Royal Road and AO3 (AO3 stubbed due to Cloudflare).~~
+        -   ~~Create a "Search" page in the UI to query providers and "Add" stories directly from results.~~
 6.  **Activity & Queue Management (The "Activity" Tab)**
     -   **Feature:** View current downloads, history, and failures.
     -   **Implementation:**
