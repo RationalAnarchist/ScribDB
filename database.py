@@ -1,5 +1,5 @@
 import os
-from sqlalchemy import create_engine, Column, Integer, String, Boolean, ForeignKey
+from sqlalchemy import create_engine, Column, Integer, String, Boolean, ForeignKey, text
 from sqlalchemy.orm import declarative_base, relationship, sessionmaker, Session
 from typing import Optional
 from core_logic import SourceManager
@@ -15,6 +15,7 @@ class Story(Base):
     author = Column(String, nullable=False)
     source_url = Column(String, unique=True, nullable=False)
     cover_path = Column(String, nullable=True)
+    monitored = Column(Boolean, default=True)
 
     chapters = relationship("Chapter", back_populates="story", cascade="all, delete-orphan")
 
@@ -42,8 +43,25 @@ engine = create_engine(DB_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 def init_db(engine=engine):
-    """Creates the database tables."""
+    """Creates the database tables and runs migrations."""
     Base.metadata.create_all(bind=engine)
+    migrate_db(engine)
+
+def migrate_db(engine):
+    """
+    Checks for missing columns and adds them if necessary.
+    Specifically checks for 'monitored' in 'stories' table.
+    """
+    with engine.connect() as conn:
+        # Check for monitored column in stories
+        # SQLite specific check
+        try:
+            result = conn.execute(text("PRAGMA table_info(stories)"))
+            columns = [row[1] for row in result.fetchall()]
+            if 'monitored' not in columns:
+                conn.execute(text("ALTER TABLE stories ADD COLUMN monitored BOOLEAN DEFAULT 1"))
+        except Exception as e:
+            print(f"Migration error: {e}")
 
 def sync_story(url: str, session: Optional[Session] = None):
     """
