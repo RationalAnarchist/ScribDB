@@ -19,6 +19,54 @@
                 <p class="text-xs text-gray-500 mt-2">The directory where chapters will be downloaded.</p>
             </div>
 
+            <h2 class="text-xl font-bold mb-4 text-gray-200 mt-8">Network & Politeness</h2>
+            <div class="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label class="block text-gray-300 text-sm font-bold mb-2" for="min-delay">Min Delay (sec)</label>
+                    <input type="number" step="0.1" id="min-delay" class="w-full p-3 rounded bg-gray-700 text-white border border-gray-600 focus:outline-none focus:border-blue-500 transition-colors">
+                </div>
+                <div>
+                    <label class="block text-gray-300 text-sm font-bold mb-2" for="max-delay">Max Delay (sec)</label>
+                    <input type="number" step="0.1" id="max-delay" class="w-full p-3 rounded bg-gray-700 text-white border border-gray-600 focus:outline-none focus:border-blue-500 transition-colors">
+                </div>
+            </div>
+            <div class="mb-6">
+                <label class="block text-gray-300 text-sm font-bold mb-2" for="user-agent">User Agent</label>
+                <input type="text" id="user-agent" class="w-full p-3 rounded bg-gray-700 text-white border border-gray-600 focus:outline-none focus:border-blue-500 transition-colors">
+            </div>
+
+            <h2 class="text-xl font-bold mb-4 text-gray-200 mt-8">Scheduling</h2>
+            <div class="mb-4">
+                <label class="block text-gray-300 text-sm font-bold mb-2" for="update-interval">Update Check Interval (hours)</label>
+                <input type="number" id="update-interval" class="w-full p-3 rounded bg-gray-700 text-white border border-gray-600 focus:outline-none focus:border-blue-500 transition-colors">
+            </div>
+            <div class="grid grid-cols-2 gap-4 mb-6">
+                <div>
+                    <label class="block text-gray-300 text-sm font-bold mb-2" for="worker-sleep-min">Worker Sleep Min (sec)</label>
+                    <input type="number" step="1" id="worker-sleep-min" class="w-full p-3 rounded bg-gray-700 text-white border border-gray-600 focus:outline-none focus:border-blue-500 transition-colors">
+                </div>
+                <div>
+                    <label class="block text-gray-300 text-sm font-bold mb-2" for="worker-sleep-max">Worker Sleep Max (sec)</label>
+                    <input type="number" step="1" id="worker-sleep-max" class="w-full p-3 rounded bg-gray-700 text-white border border-gray-600 focus:outline-none focus:border-blue-500 transition-colors">
+                </div>
+            </div>
+
+            <h2 class="text-xl font-bold mb-4 text-gray-200 mt-8">Advanced</h2>
+             <div class="mb-4">
+                <label class="block text-gray-300 text-sm font-bold mb-2" for="database-url">Database URL</label>
+                <input type="text" id="database-url" class="w-full p-3 rounded bg-gray-700 text-white border border-gray-600 focus:outline-none focus:border-blue-500 transition-colors">
+                 <p class="text-xs text-gray-500 mt-2">Environment variable DATABASE_URL takes precedence if set.</p>
+            </div>
+            <div class="mb-6">
+                <label class="block text-gray-300 text-sm font-bold mb-2" for="log-level">Log Level</label>
+                <select id="log-level" class="w-full p-3 rounded bg-gray-700 text-white border border-gray-600 focus:outline-none focus:border-blue-500 transition-colors">
+                    <option value="DEBUG">DEBUG</option>
+                    <option value="INFO">INFO</option>
+                    <option value="WARNING">WARNING</option>
+                    <option value="ERROR">ERROR</option>
+                </select>
+            </div>
+
             <div class="flex items-center gap-4">
                 <button type="submit" id="save-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded transition-colors flex items-center gap-2">
                     Save Changes
@@ -38,6 +86,15 @@
                 const data = await response.json();
 
                 document.getElementById('download-path').value = data.download_path || '';
+                document.getElementById('min-delay').value = data.min_delay || 2.0;
+                document.getElementById('max-delay').value = data.max_delay || 5.0;
+                document.getElementById('user-agent').value = data.user_agent || '';
+                document.getElementById('update-interval').value = data.update_interval_hours || 1;
+                document.getElementById('worker-sleep-min').value = data.worker_sleep_min || 30.0;
+                document.getElementById('worker-sleep-max').value = data.worker_sleep_max || 60.0;
+                document.getElementById('database-url').value = data.database_url || '';
+                document.getElementById('log-level').value = data.log_level || 'INFO';
+
             } catch (err) {
                 console.error("Error loading settings:", err);
                 document.getElementById('status-msg').innerText = "Failed to load settings.";
@@ -53,13 +110,23 @@
             btn.innerHTML = 'Saving...';
             document.getElementById('status-msg').innerText = '';
 
-            const downloadPath = document.getElementById('download-path').value;
+            const payload = {
+                download_path: document.getElementById('download-path').value,
+                min_delay: parseFloat(document.getElementById('min-delay').value),
+                max_delay: parseFloat(document.getElementById('max-delay').value),
+                user_agent: document.getElementById('user-agent').value,
+                update_interval_hours: parseInt(document.getElementById('update-interval').value),
+                worker_sleep_min: parseFloat(document.getElementById('worker-sleep-min').value),
+                worker_sleep_max: parseFloat(document.getElementById('worker-sleep-max').value),
+                database_url: document.getElementById('database-url').value,
+                log_level: document.getElementById('log-level').value
+            };
 
             try {
                 const response = await fetch('/api/settings', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({download_path: downloadPath})
+                    body: JSON.stringify(payload)
                 });
 
                 if (!response.ok) throw new Error('Failed to save settings');

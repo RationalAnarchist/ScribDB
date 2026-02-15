@@ -129,8 +129,9 @@ def start_scheduler():
 
     scheduler = BackgroundScheduler()
 
-    # Check for updates every hour
-    scheduler.add_job(check_for_updates, 'interval', hours=1)
+    # Check for updates every hour (configurable)
+    update_interval = config_manager.get("update_interval_hours", 1)
+    scheduler.add_job(check_for_updates, 'interval', hours=update_interval)
 
     # Process download queue every 2 minutes
     scheduler.add_job(process_download_queue, 'interval', minutes=2)

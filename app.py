@@ -48,6 +48,14 @@ class UrlRequest(BaseModel):
 
 class SettingsRequest(BaseModel):
     download_path: str
+    min_delay: float = 2.0
+    max_delay: float = 5.0
+    user_agent: str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    update_interval_hours: int = 1
+    worker_sleep_min: float = 30.0
+    worker_sleep_max: float = 60.0
+    database_url: str = "sqlite:///library.db"
+    log_level: str = "INFO"
 
 # Scheduler instance
 scheduler = None
@@ -63,7 +71,9 @@ async def startup_event():
 
     logger.info("Starting scheduler...")
     scheduler = BackgroundScheduler()
-    scheduler.add_job(check_for_updates, 'interval', hours=1)
+    # Use configurable interval
+    interval = config_manager.get("update_interval_hours", 1)
+    scheduler.add_job(check_for_updates, 'interval', hours=interval)
     scheduler.start()
     logger.info("Scheduler started.")
 
@@ -129,13 +139,22 @@ async def get_queue(db: Session = Depends(get_db)):
 @app.get("/api/settings")
 async def get_settings():
     """Get current configuration."""
-    return {"download_path": config_manager.get("download_path")}
+    # Return all config values
+    return config_manager.config
 
 @app.post("/api/settings")
 async def update_settings(settings: SettingsRequest):
     """Update configuration."""
     try:
         config_manager.set("download_path", settings.download_path)
+        config_manager.set("min_delay", settings.min_delay)
+        config_manager.set("max_delay", settings.max_delay)
+        config_manager.set("user_agent", settings.user_agent)
+        config_manager.set("update_interval_hours", settings.update_interval_hours)
+        config_manager.set("worker_sleep_min", settings.worker_sleep_min)
+        config_manager.set("worker_sleep_max", settings.worker_sleep_max)
+        config_manager.set("database_url", settings.database_url)
+        config_manager.set("log_level", settings.log_level)
         return {"message": "Settings updated successfully"}
     except Exception as e:
         logger.error(f"Error updating settings: {e}")

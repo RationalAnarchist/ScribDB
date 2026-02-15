@@ -20,8 +20,10 @@ def worker():
     init_db()
 
     while True:
-        # Random sleep time between 30 and 60 seconds
-        sleep_time = random.uniform(30, 60)
+        # Random sleep time between configured min and max
+        min_sleep = config_manager.get('worker_sleep_min', 30.0)
+        max_sleep = config_manager.get('worker_sleep_max', 60.0)
+        sleep_time = random.uniform(min_sleep, max_sleep)
 
         session = SessionLocal()
         try:

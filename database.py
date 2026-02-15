@@ -5,6 +5,7 @@ from sqlalchemy.sql import func
 from typing import Optional
 from core_logic import SourceManager
 from royalroad import RoyalRoadSource
+from config import config_manager
 
 Base = declarative_base()
 
@@ -46,7 +47,11 @@ class Chapter(Base):
         return f"<Chapter(title='{self.title}', story_id={self.story_id})>"
 
 # Setup database
-DB_URL = os.getenv("DATABASE_URL", "sqlite:///library.db")
+# Priority: Environment Variable > Config file > Default
+DB_URL = os.getenv("DATABASE_URL")
+if not DB_URL:
+    DB_URL = config_manager.get("database_url", "sqlite:///library.db")
+
 engine = create_engine(DB_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
