@@ -1,3 +1,4 @@
+import os
 from sqlalchemy import create_engine, Column, Integer, String, Boolean, ForeignKey
 from sqlalchemy.orm import declarative_base, relationship, sessionmaker, Session
 from typing import Optional
@@ -36,11 +37,11 @@ class Chapter(Base):
         return f"<Chapter(title='{self.title}', story_id={self.story_id})>"
 
 # Setup database
-DB_URL = "sqlite:///library.db"
+DB_URL = os.getenv("DATABASE_URL", "sqlite:///library.db")
 engine = create_engine(DB_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-def init_db():
+def init_db(engine=engine):
     """Creates the database tables."""
     Base.metadata.create_all(bind=engine)
 
