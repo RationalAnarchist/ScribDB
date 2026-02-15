@@ -16,6 +16,7 @@ from worker import worker
 from ebook_builder import EbookBuilder
 from scheduler import check_for_updates
 from apscheduler.schedulers.background import BackgroundScheduler
+from config import config_manager
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -44,6 +45,9 @@ def get_db():
 # Models for API
 class UrlRequest(BaseModel):
     url: str
+
+class SettingsRequest(BaseModel):
+    download_path: str
 
 # Scheduler instance
 scheduler = None
@@ -89,6 +93,53 @@ async def read_root(request: Request, db: Session = Depends(get_db)):
         stories_with_progress.append(story)
 
     return templates.TemplateResponse("index.html", {"request": request, "stories": stories_with_progress})
+
+@app.get("/add", response_class=HTMLResponse)
+async def add_new_page(request: Request):
+    """Render the add new story page."""
+    return templates.TemplateResponse("add_new.html", {"request": request})
+
+@app.get("/queue", response_class=HTMLResponse)
+async def queue_page(request: Request):
+    """Render the download queue page."""
+    return templates.TemplateResponse("queue.html", {"request": request})
+
+@app.get("/settings", response_class=HTMLResponse)
+async def settings_page(request: Request):
+    """Render the settings page."""
+    return templates.TemplateResponse("settings.html", {"request": request})
+
+@app.get("/api/queue")
+async def get_queue(db: Session = Depends(get_db)):
+    """Get pending chapters."""
+    # Limit to top 50 to avoid huge response if backlog is large
+    pending_chapters = db.query(Chapter).filter(Chapter.status == 'pending').order_by(Chapter.id.asc()).limit(50).all()
+
+    result = []
+    for chapter in pending_chapters:
+        result.append({
+            "id": chapter.id,
+            "story_id": chapter.story_id,
+            "story_title": chapter.story.title if chapter.story else "Unknown Story",
+            "chapter_title": chapter.title,
+            "index": chapter.index
+        })
+    return result
+
+@app.get("/api/settings")
+async def get_settings():
+    """Get current configuration."""
+    return {"download_path": config_manager.get("download_path")}
+
+@app.post("/api/settings")
+async def update_settings(settings: SettingsRequest):
+    """Update configuration."""
+    try:
+        config_manager.set("download_path", settings.download_path)
+        return {"message": "Settings updated successfully"}
+    except Exception as e:
+        logger.error(f"Error updating settings: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update settings")
 
 @app.post("/api/lookup")
 async def lookup_story(request: UrlRequest):

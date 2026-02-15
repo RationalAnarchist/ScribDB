@@ -6,6 +6,7 @@ from sqlalchemy.sql import func
 from core_logic import SourceManager
 from royalroad import RoyalRoadSource
 from database import Story, Chapter, SessionLocal, init_db, engine
+from config import config_manager
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -266,7 +267,7 @@ class StoryManager:
             # Ensure directory exists
             # Create a safe directory name from title
             safe_title = "".join([c for c in story.title if c.isalpha() or c.isdigit() or c==' ']).rstrip()
-            story_dir = os.path.join("saved_stories", f"{story_id}_{safe_title.replace(' ', '_')}")
+            story_dir = os.path.join(config_manager.get('download_path'), f"{story_id}_{safe_title.replace(' ', '_')}")
             os.makedirs(story_dir, exist_ok=True)
 
             for chapter in missing_chapters:

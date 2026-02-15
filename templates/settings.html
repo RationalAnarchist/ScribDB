@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}Settings - Scrollarr{% endblock %}
+
+{% block content %}
+    <header class="mb-8">
+        <h1 class="text-3xl font-bold">Settings</h1>
+    </header>
+
+    <div class="bg-gray-800 rounded-lg p-6 shadow-lg max-w-2xl">
+        <h2 class="text-xl font-bold mb-4 text-gray-200">General</h2>
+
+        <form id="settings-form" onsubmit="saveSettings(event)">
+            <div class="mb-6">
+                <label class="block text-gray-300 text-sm font-bold mb-2" for="download-path">
+                    Download Location
+                </label>
+                <input type="text" id="download-path" name="download_path" class="w-full p-3 rounded bg-gray-700 text-white border border-gray-600 focus:outline-none focus:border-blue-500 transition-colors" placeholder="e.g. saved_stories">
+                <p class="text-xs text-gray-500 mt-2">The directory where chapters will be downloaded.</p>
+            </div>
+
+            <div class="flex items-center gap-4">
+                <button type="submit" id="save-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded transition-colors flex items-center gap-2">
+                    Save Changes
+                </button>
+                <span id="status-msg" class="text-sm font-medium"></span>
+            </div>
+        </form>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+    <script>
+        async function loadSettings() {
+            try {
+                const response = await fetch('/api/settings');
+                if (!response.ok) throw new Error('Failed to load settings');
+                const data = await response.json();
+
+                document.getElementById('download-path').value = data.download_path || '';
+            } catch (err) {
+                console.error("Error loading settings:", err);
+                document.getElementById('status-msg').innerText = "Failed to load settings.";
+                document.getElementById('status-msg').className = "text-red-500 text-sm font-medium";
+            }
+        }
+
+        async function saveSettings(e) {
+            e.preventDefault();
+            const btn = document.getElementById('save-btn');
+            const originalText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = 'Saving...';
+            document.getElementById('status-msg').innerText = '';
+
+            const downloadPath = document.getElementById('download-path').value;
+
+            try {
+                const response = await fetch('/api/settings', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({download_path: downloadPath})
+                });
+
+                if (!response.ok) throw new Error('Failed to save settings');
+
+                document.getElementById('status-msg').innerText = "Settings saved successfully.";
+                document.getElementById('status-msg').className = "text-green-500 text-sm font-medium";
+
+                setTimeout(() => {
+                     document.getElementById('status-msg').innerText = "";
+                }, 3000);
+
+            } catch (err) {
+                console.error("Error saving settings:", err);
+                document.getElementById('status-msg').innerText = "Failed to save settings.";
+                document.getElementById('status-msg').className = "text-red-500 text-sm font-medium";
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+        }
+
+        loadSettings();
+    </script>
+{% endblock %}

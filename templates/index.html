@@ -1,166 +1,56 @@
-<!DOCTYPE html>
-<html lang="en" class="dark">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Scrollarr</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        background: '#1a1a1a',
-                        text: '#e5e5e5',
-                    }
-                }
-            }
-        }
-    </script>
-    <style>
-        body {
-            background-color: #1a1a1a;
-            color: #e5e5e5;
-        }
-        .cover-image {
-            aspect-ratio: 2/3;
-            object-fit: cover;
-        }
-    </style>
-</head>
-<body class="p-6">
-    <div class="container mx-auto">
-        <header class="flex justify-between items-center mb-8">
-            <h1 class="text-3xl font-bold">Scrollarr Library</h1>
-            <button onclick="openModal()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                </svg>
-            </button>
-        </header>
+{% extends "base.html" %}
 
-        <!-- Grid -->
-        <div id="story-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {% for story in stories %}
-            <a href="/story/{{ story.id }}" class="block bg-gray-800 rounded-lg overflow-hidden hover:ring-2 hover:ring-blue-500 transition relative">
-                <img src="{{ story.cover_path or 'https://via.placeholder.com/300x450?text=No+Cover' }}" alt="{{ story.title }}" class="w-full cover-image">
-                <div class="p-4">
-                    <h2 class="text-xl font-bold truncate">{{ story.title }}</h2>
-                    <p class="text-sm text-gray-400 truncate">{{ story.author }}</p>
-                    <div class="mt-4 w-full bg-gray-700 rounded-full h-2.5 dark:bg-gray-700">
-                        <div id="progress-bar-{{ story.id }}" class="bg-blue-600 h-2.5 rounded-full" style="width: {{ story.progress }}%"></div>
-                    </div>
-                    <p id="progress-text-{{ story.id }}" class="text-xs text-right mt-1 text-gray-400">{{ story.progress }}%</p>
-                </div>
-            </a>
-            {% endfor %}
-        </div>
-    </div>
+{% block title %}Library - Scrollarr{% endblock %}
 
-    <!-- Modal -->
-    <div id="add-modal" class="fixed inset-0 bg-black bg-opacity-70 hidden flex items-center justify-center z-50">
-        <div class="bg-gray-800 rounded-lg p-6 w-full max-w-md">
-            <h2 class="text-2xl font-bold mb-4">Add New Story</h2>
-            <input type="text" id="url-input" placeholder="Enter Story URL" class="w-full p-2 rounded bg-gray-700 text-white border border-gray-600 mb-4 focus:outline-none focus:border-blue-500">
+{% block content %}
+    <header class="flex justify-between items-center mb-8">
+        <h1 class="text-3xl font-bold">Library</h1>
+        <a href="/add" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+            </svg>
+            Add New
+        </a>
+    </header>
 
-            <div id="preview-area" class="hidden mb-4 p-4 bg-gray-700 rounded">
-                <div class="flex items-center gap-4">
-                    <img id="preview-cover" src="" class="w-16 h-24 object-cover rounded">
-                    <div>
-                        <h3 id="preview-title" class="font-bold"></h3>
-                        <p id="preview-author" class="text-sm text-gray-400"></p>
-                    </div>
+    <!-- Grid -->
+    <div id="story-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+        {% for story in stories %}
+        <a href="/story/{{ story.id }}" class="block bg-gray-800 rounded-lg overflow-hidden hover:ring-2 hover:ring-blue-500 transition relative shadow-lg group">
+            <div class="relative aspect-[2/3] overflow-hidden">
+                <img src="{{ story.cover_path or 'https://via.placeholder.com/300x450?text=No+Cover' }}" alt="{{ story.title }}" class="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-300">
+                <div class="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
+                    <span class="text-white text-sm font-medium">View Details</span>
                 </div>
             </div>
-
-            <div class="flex justify-end gap-2">
-                <button onclick="closeModal()" class="bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded">Cancel</button>
-                <button id="search-btn" onclick="lookupStory()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Search</button>
-                <button id="add-btn" onclick="addStory()" class="hidden bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">Add</button>
+            <div class="p-4">
+                <h2 class="text-lg font-bold truncate text-gray-100" title="{{ story.title }}">{{ story.title }}</h2>
+                <p class="text-sm text-gray-400 truncate">{{ story.author }}</p>
+                <div class="mt-4 w-full bg-gray-700 rounded-full h-2">
+                    <div id="progress-bar-{{ story.id }}" class="bg-blue-600 h-2 rounded-full transition-all duration-500" style="width: {{ story.progress }}%"></div>
+                </div>
+                <div class="flex justify-between items-center mt-2">
+                    <span class="text-xs text-gray-500">{{ story.downloaded_chapters }} / {{ story.total_chapters }}</span>
+                    <span id="progress-text-{{ story.id }}" class="text-xs text-gray-400">{{ story.progress }}%</span>
+                </div>
             </div>
-            <p id="error-msg" class="text-red-500 mt-2 hidden"></p>
-        </div>
+        </a>
+        {% endfor %}
     </div>
 
+    {% if not stories %}
+    <div class="flex flex-col items-center justify-center h-96 text-gray-500">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mb-4 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+        </svg>
+        <p class="text-xl">Your library is empty.</p>
+        <a href="/add" class="mt-4 text-blue-500 hover:text-blue-400">Add your first story &rarr;</a>
+    </div>
+    {% endif %}
+{% endblock %}
+
+{% block scripts %}
     <script>
-        function openModal() {
-            document.getElementById('add-modal').classList.remove('hidden');
-            document.getElementById('url-input').value = '';
-            document.getElementById('preview-area').classList.add('hidden');
-            document.getElementById('add-btn').classList.add('hidden');
-            document.getElementById('search-btn').classList.remove('hidden');
-            document.getElementById('error-msg').classList.add('hidden');
-        }
-
-        function closeModal() {
-            document.getElementById('add-modal').classList.add('hidden');
-        }
-
-        async function lookupStory() {
-            const url = document.getElementById('url-input').value;
-            if (!url) return;
-
-            const btn = document.getElementById('search-btn');
-            btn.disabled = true;
-            btn.innerText = 'Searching...';
-            document.getElementById('error-msg').classList.add('hidden');
-
-            try {
-                const response = await fetch('/api/lookup', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({url: url})
-                });
-
-                if (!response.ok) throw new Error('Story not found or invalid URL');
-
-                const data = await response.json();
-
-                document.getElementById('preview-title').innerText = data.title;
-                document.getElementById('preview-author').innerText = data.author;
-                const cover = data.cover_url || 'https://via.placeholder.com/150';
-                document.getElementById('preview-cover').src = cover;
-
-                document.getElementById('preview-area').classList.remove('hidden');
-                document.getElementById('search-btn').classList.add('hidden');
-                document.getElementById('add-btn').classList.remove('hidden');
-
-            } catch (err) {
-                document.getElementById('error-msg').innerText = err.message;
-                document.getElementById('error-msg').classList.remove('hidden');
-            } finally {
-                btn.disabled = false;
-                btn.innerText = 'Search';
-            }
-        }
-
-        async function addStory() {
-            const url = document.getElementById('url-input').value;
-            const btn = document.getElementById('add-btn');
-            btn.disabled = true;
-            btn.innerText = 'Adding...';
-
-            try {
-                const response = await fetch('/api/add', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({url: url})
-                });
-
-                if (!response.ok) throw new Error('Failed to add story');
-
-                // Reload to see new story
-                window.location.reload();
-
-            } catch (err) {
-                document.getElementById('error-msg').innerText = err.message;
-                document.getElementById('error-msg').classList.remove('hidden');
-                btn.disabled = false;
-                btn.innerText = 'Add';
-            }
-        }
-
         // Polling
         async function updateProgress() {
             try {
@@ -182,5 +72,4 @@
 
         setInterval(updateProgress, 5000);
     </script>
-</body>
-</html>
+{% endblock %}

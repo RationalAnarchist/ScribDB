@@ -4,6 +4,7 @@ import random
 import logging
 from database import SessionLocal, Chapter, Story, init_db
 from royalroad import RoyalRoadSource
+from config import config_manager
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -44,7 +45,7 @@ def worker():
                     # Create safe directory name
                     # logic from scheduler.py
                     safe_story_title = "".join([c for c in story.title if c.isalpha() or c.isdigit() or c==' ']).rstrip().replace(' ', '_')
-                    story_dir = os.path.join("saved_stories", f"{story.id}_{safe_story_title}")
+                    story_dir = os.path.join(config_manager.get('download_path'), f"{story.id}_{safe_story_title}")
                     os.makedirs(story_dir, exist_ok=True)
 
                     # Create safe filename
