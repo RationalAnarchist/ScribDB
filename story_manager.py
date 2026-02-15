@@ -2,6 +2,7 @@ import os
 import logging
 from typing import Optional
 from sqlalchemy.orm import Session
+from sqlalchemy.sql import func
 from core_logic import SourceManager
 from royalroad import RoyalRoadSource
 from database import Story, Chapter, SessionLocal, init_db, engine
@@ -48,7 +49,8 @@ class StoryManager:
                     title=metadata.get('title', 'Unknown'),
                     author=metadata.get('author', 'Unknown'),
                     source_url=url,
-                    cover_path=metadata.get('cover_url')
+                    cover_path=metadata.get('cover_url'),
+                    status='Monitoring'
                 )
                 session.add(story)
                 session.flush()
@@ -59,19 +61,28 @@ class StoryManager:
                 # cover might be updated too if needed
 
             # Handle chapters
-            existing_urls = {c.source_url for c in story.chapters}
+            existing_urls = {c.source_url: c for c in story.chapters}
             new_chapters_count = 0
 
-            for chapter_data in chapters_data:
+            for i, chapter_data in enumerate(chapters_data):
                 c_url = chapter_data['url']
                 if c_url not in existing_urls:
                     new_chapter = Chapter(
                         title=chapter_data['title'],
                         source_url=c_url,
-                        story_id=story.id
+                        story_id=story.id,
+                        index=i + 1
                     )
                     session.add(new_chapter)
                     new_chapters_count += 1
+                else:
+                    # Update index if needed
+                    existing_chap = existing_urls[c_url]
+                    if existing_chap.index != i + 1:
+                        existing_chap.index = i + 1
+
+            if new_chapters_count > 0:
+                story.last_updated = func.now()
 
             session.commit()
             logger.info(f"Story '{story.title}' processed. Added {new_chapters_count} new chapters.")

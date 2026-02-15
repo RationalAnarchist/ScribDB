@@ -42,12 +42,15 @@ class TestDatabase(unittest.TestCase):
         self.assertIsNotNone(story)
         self.assertEqual(story.title, 'Test Story')
         self.assertEqual(story.author, 'Test Author')
+        self.assertEqual(story.status, 'Monitoring')
 
         # Verify Chapters created
-        chapters = self.session.query(Chapter).filter_by(story_id=story.id).all()
+        chapters = self.session.query(Chapter).filter_by(story_id=story.id).order_by(Chapter.index).all()
         self.assertEqual(len(chapters), 2)
-        titles = sorted([c.title for c in chapters])
+        titles = [c.title for c in chapters]
         self.assertEqual(titles, ['Chapter 1', 'Chapter 2'])
+        self.assertEqual(chapters[0].index, 1)
+        self.assertEqual(chapters[1].index, 2)
 
     @patch('database.SourceManager')
     def test_sync_story_update(self, MockSourceManager):
@@ -78,6 +81,7 @@ class TestDatabase(unittest.TestCase):
         self.session.refresh(story)
         self.assertEqual(story.title, 'New Title')
         self.assertEqual(story.author, 'New Author')
+        self.assertIsNotNone(story.last_updated)
 
         # Verify Chapter added
         chapters = self.session.query(Chapter).filter_by(story_id=story.id).all()
