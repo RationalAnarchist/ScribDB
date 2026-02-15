@@ -1,6 +1,7 @@
 import os
-from sqlalchemy import create_engine, Column, Integer, String, Boolean, ForeignKey, text
+from sqlalchemy import create_engine, Column, Integer, String, Boolean, ForeignKey, text, DateTime
 from sqlalchemy.orm import declarative_base, relationship, sessionmaker, Session
+from sqlalchemy.sql import func
 from typing import Optional
 from core_logic import SourceManager
 from royalroad import RoyalRoadSource
@@ -16,6 +17,8 @@ class Story(Base):
     source_url = Column(String, unique=True, nullable=False)
     cover_path = Column(String, nullable=True)
     monitored = Column(Boolean, default=True)
+    last_updated = Column(DateTime, nullable=True)
+    status = Column(String, default='Monitoring')
 
     chapters = relationship("Chapter", back_populates="story", cascade="all, delete-orphan")
 
@@ -31,6 +34,8 @@ class Chapter(Base):
     source_url = Column(String, nullable=False)
     local_path = Column(String, nullable=True)
     is_downloaded = Column(Boolean, default=False)
+    volume_number = Column(Integer, nullable=True)
+    index = Column(Integer, nullable=True)
 
     story = relationship("Story", back_populates="chapters")
 
@@ -60,8 +65,22 @@ def migrate_db(engine):
             columns = [row[1] for row in result.fetchall()]
             if 'monitored' not in columns:
                 conn.execute(text("ALTER TABLE stories ADD COLUMN monitored BOOLEAN DEFAULT 1"))
+            if 'last_updated' not in columns:
+                conn.execute(text("ALTER TABLE stories ADD COLUMN last_updated DATETIME"))
+            if 'status' not in columns:
+                conn.execute(text("ALTER TABLE stories ADD COLUMN status VARCHAR DEFAULT 'Monitoring'"))
         except Exception as e:
-            print(f"Migration error: {e}")
+            print(f"Migration error (stories): {e}")
+
+        try:
+            result = conn.execute(text("PRAGMA table_info(chapters)"))
+            columns = [row[1] for row in result.fetchall()]
+            if 'volume_number' not in columns:
+                conn.execute(text("ALTER TABLE chapters ADD COLUMN volume_number INTEGER"))
+            if 'index' not in columns:
+                conn.execute(text("ALTER TABLE chapters ADD COLUMN 'index' INTEGER"))
+        except Exception as e:
+            print(f"Migration error (chapters): {e}")
 
 def sync_story(url: str, session: Optional[Session] = None):
     """
@@ -95,7 +114,8 @@ def sync_story(url: str, session: Optional[Session] = None):
                 title=metadata.get('title', 'Unknown'),
                 author=metadata.get('author', 'Unknown'),
                 source_url=url,
-                cover_path=None
+                cover_path=None,
+                status='Monitoring'
             )
             session.add(story)
             session.flush() # Ensure ID is available
@@ -110,17 +130,28 @@ def sync_story(url: str, session: Optional[Session] = None):
         if story.chapters:
              existing_chapters = {c.source_url: c for c in story.chapters}
 
-        for chapter_data in chapters_data:
+        new_chapters_count = 0
+        for i, chapter_data in enumerate(chapters_data):
             chapter_url = chapter_data['url']
             chapter_title = chapter_data['title']
 
             if chapter_url not in existing_chapters:
                 new_chapter = Chapter(
                     title=chapter_title,
-                    source_url=chapter_url
+                    source_url=chapter_url,
+                    index=i + 1
                 )
                 # Associate with story
                 story.chapters.append(new_chapter)
+                new_chapters_count += 1
+            else:
+                # Update index if it's missing or changed
+                existing_chap = existing_chapters[chapter_url]
+                if existing_chap.index != i + 1:
+                    existing_chap.index = i + 1
+
+        if new_chapters_count > 0:
+            story.last_updated = func.now()
 
         session.commit()
 

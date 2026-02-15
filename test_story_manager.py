@@ -63,7 +63,17 @@ class TestStoryManager(unittest.TestCase):
         story = session.query(Story).filter(Story.id == story_id).first()
         self.assertIsNotNone(story)
         self.assertEqual(story.title, 'Test Story')
+        self.assertEqual(story.status, 'Monitoring')
+        self.assertIsNotNone(story.last_updated)
         self.assertEqual(len(story.chapters), 2)
+
+        # Check indices
+        chapters = session.query(Chapter).filter(Chapter.story_id == story_id).order_by(Chapter.index).all()
+        self.assertEqual(chapters[0].title, 'Chapter 1')
+        self.assertEqual(chapters[0].index, 1)
+        self.assertEqual(chapters[1].title, 'Chapter 2')
+        self.assertEqual(chapters[1].index, 2)
+
         session.close()
 
     def test_download_missing_chapters(self):
