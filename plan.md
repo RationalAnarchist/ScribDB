@@ -9,9 +9,9 @@ Before adding complex features, we must ensure the foundation is robust.
 1.  ~~**Unify Background Workers**~~
     -   ~~**Problem:** Currently, `worker.py` runs a continuous loop while `scheduler.py` runs interval checks. This splits logic and makes management difficult.~~
     -   ~~**Solution:** Refactor to use a single `JobManager` (via `APScheduler`) within `app.py`. Remove the standalone `worker.py` loop. All tasks (checking updates, downloading chapters) should be scheduled jobs.~~
-2.  **Database Migrations**
-    -   **Problem:** Schema changes are currently manual (`migrate_db` in `database.py`).
-    -   **Solution:** Implement `Alembic` for proper database migrations to handle future schema changes safely.
+2.  ~~**Database Migrations**~~
+    -   ~~**Problem:** Schema changes are currently manual (`migrate_db` in `database.py`).~~
+    -   ~~**Solution:** Implement `Alembic` for proper database migrations to handle future schema changes safely.~~
 3.  **Logging & Error Handling**
     -   **Problem:** Logs are scattered.
     -   **Solution:** Centralize logging to a file and the console. Expose logs in the UI later.
