@@ -84,6 +84,68 @@ class StoryManager:
         finally:
             session.close()
 
+    def list_stories(self):
+        """
+        Lists all stories in the database with their download progress.
+        Returns a list of dictionaries.
+        """
+        session = SessionLocal()
+        try:
+            stories = session.query(Story).all()
+            result = []
+            for story in stories:
+                total = len(story.chapters)
+                downloaded = sum(1 for c in story.chapters if c.is_downloaded)
+                result.append({
+                    'id': story.id,
+                    'title': story.title,
+                    'author': story.author,
+                    'downloaded': downloaded,
+                    'total': total
+                })
+            return result
+        finally:
+            session.close()
+
+    def compile_story(self, story_id: int):
+        """
+        Compiles the story into an EPUB file.
+        Returns the path of the generated EPUB.
+        """
+        session = SessionLocal()
+        try:
+            story = session.query(Story).filter(Story.id == story_id).first()
+            if not story:
+                raise ValueError(f"Story with ID {story_id} not found")
+
+            chapters = session.query(Chapter).filter(Chapter.story_id == story_id).order_by(Chapter.id).all()
+
+            chapter_data = []
+            for chapter in chapters:
+                if chapter.is_downloaded and chapter.local_path and os.path.exists(chapter.local_path):
+                    with open(chapter.local_path, 'r', encoding='utf-8') as f:
+                        content = f.read()
+                    chapter_data.append({'title': chapter.title, 'content': content})
+                else:
+                    logger.warning(f"Chapter {chapter.title} (ID: {chapter.id}) is missing or not downloaded.")
+
+            if not chapter_data:
+                raise ValueError("No downloaded chapters found for this story.")
+
+            from ebook_builder import EbookBuilder
+            builder = EbookBuilder()
+
+            safe_title = "".join([c for c in story.title if c.isalpha() or c.isdigit() or c==' ']).rstrip().replace(' ', '_')
+            if not safe_title:
+                safe_title = f"story_{story_id}"
+
+            output_path = f"{safe_title}.epub"
+
+            builder.make_epub(story.title, story.author, chapter_data, output_path, story.cover_path)
+            return output_path
+        finally:
+            session.close()
+
     def download_missing_chapters(self, story_id: int):
         """
         Downloads content for all chapters of the story that are not yet downloaded.

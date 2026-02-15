@@ -85,5 +85,30 @@ class TestStoryManager(unittest.TestCase):
                 self.assertEqual(content, "<p>Test Content</p>")
         session.close()
 
+    def test_list_stories(self):
+        self.manager.add_story("http://example.com/story")
+        stories = self.manager.list_stories()
+        self.assertEqual(len(stories), 1)
+        self.assertEqual(stories[0]['title'], 'Test Story')
+        self.assertEqual(stories[0]['downloaded'], 0)
+        self.assertEqual(stories[0]['total'], 2)
+
+        # Download chapters and check again
+        story_id = stories[0]['id']
+        self.manager.download_missing_chapters(story_id)
+        stories = self.manager.list_stories()
+        self.assertEqual(stories[0]['downloaded'], 2)
+
+    def test_compile_story(self):
+        story_id = self.manager.add_story("http://example.com/story")
+        self.manager.download_missing_chapters(story_id)
+
+        output_path = self.manager.compile_story(story_id)
+        self.assertTrue(os.path.exists(output_path))
+        self.assertTrue(output_path.endswith(".epub"))
+        # cleanup epub
+        if os.path.exists(output_path):
+            os.remove(output_path)
+
 if __name__ == '__main__':
     unittest.main()
