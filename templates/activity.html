@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+
+{% block title %}Activity - Scrollarr{% endblock %}
+
+{% block content %}
+    <header class="mb-8">
+        <h1 class="text-3xl font-bold">Activity</h1>
+    </header>
+
+    <!-- Tabs -->
+    <div class="mb-4 border-b border-gray-700">
+        <ul class="flex flex-wrap -mb-px text-sm font-medium text-center" id="activity-tabs" role="tablist">
+            <li class="mr-2" role="presentation">
+                <button class="inline-block p-4 border-b-2 rounded-t-lg text-blue-500 border-blue-500" id="queue-tab" type="button" role="tab" aria-controls="queue" aria-selected="true" onclick="switchTab('queue')">Queue</button>
+            </li>
+            <li class="mr-2" role="presentation">
+                <button class="inline-block p-4 border-b-2 border-transparent rounded-t-lg hover:text-gray-300 hover:border-gray-300 text-gray-400" id="history-tab" type="button" role="tab" aria-controls="history" aria-selected="false" onclick="switchTab('history')">History</button>
+            </li>
+        </ul>
+    </div>
+
+    <!-- Queue Tab Content -->
+    <div id="queue-content" class="tab-content">
+        <div class="bg-gray-800 rounded-lg p-6 shadow-lg">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="text-gray-400 border-b border-gray-700 text-sm uppercase tracking-wider">
+                            <th class="p-3 font-semibold">Story</th>
+                            <th class="p-3 font-semibold">Chapter</th>
+                            <th class="p-3 font-semibold text-right">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="queue-body" class="divide-y divide-gray-700">
+                        <tr class="animate-pulse">
+                            <td colspan="3" class="p-4 text-center text-gray-500">Loading queue...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- History Tab Content -->
+    <div id="history-content" class="tab-content hidden">
+        <div class="bg-gray-800 rounded-lg p-6 shadow-lg">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="text-gray-400 border-b border-gray-700 text-sm uppercase tracking-wider">
+                            <th class="p-3 font-semibold">Time</th>
+                            <th class="p-3 font-semibold">Story</th>
+                            <th class="p-3 font-semibold">Chapter</th>
+                            <th class="p-3 font-semibold">Status</th>
+                            <th class="p-3 font-semibold text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="history-body" class="divide-y divide-gray-700">
+                        <tr class="animate-pulse">
+                            <td colspan="5" class="p-4 text-center text-gray-500">Loading history...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+{% endblock %}
+
+{% block scripts %}
+    <script>
+        // Tab Switching Logic
+        function switchTab(tabName) {
+            // Update buttons
+            const tabs = ['queue', 'history'];
+            tabs.forEach(t => {
+                const btn = document.getElementById(`${t}-tab`);
+                const content = document.getElementById(`${t}-content`);
+
+                if (t === tabName) {
+                    btn.classList.remove('text-gray-400', 'border-transparent', 'hover:text-gray-300', 'hover:border-gray-300');
+                    btn.classList.add('text-blue-500', 'border-blue-500');
+                    btn.setAttribute('aria-selected', 'true');
+                    content.classList.remove('hidden');
+                } else {
+                    btn.classList.add('text-gray-400', 'border-transparent', 'hover:text-gray-300', 'hover:border-gray-300');
+                    btn.classList.remove('text-blue-500', 'border-blue-500');
+                    btn.setAttribute('aria-selected', 'false');
+                    content.classList.add('hidden');
+                }
+            });
+
+            // Fetch data for the selected tab
+            if (tabName === 'queue') fetchQueue();
+            if (tabName === 'history') fetchHistory();
+        }
+
+        async function fetchQueue() {
+            try {
+                const response = await fetch('/api/queue');
+                if (!response.ok) throw new Error('Failed to fetch queue');
+                const data = await response.json();
+
+                const tbody = document.getElementById('queue-body');
+                tbody.innerHTML = '';
+
+                if (data.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="3" class="p-4 text-center text-gray-500">Queue is empty.</td></tr>`;
+                    return;
+                }
+
+                data.forEach(item => {
+                    const tr = document.createElement('tr');
+                    tr.className = 'hover:bg-gray-700/50 transition-colors';
+                    tr.innerHTML = `
+                        <td class="p-3 font-medium text-gray-200">${item.story_title}</td>
+                        <td class="p-3 text-gray-400">${item.chapter_title}</td>
+                        <td class="p-3 text-right">
+                            <span class="bg-yellow-900/50 text-yellow-300 py-1 px-3 rounded-full text-xs font-semibold border border-yellow-800 animate-pulse">Pending</span>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+
+            } catch (err) {
+                console.error("Queue fetch error:", err);
+                document.getElementById('queue-body').innerHTML = `<tr><td colspan="3" class="p-4 text-center text-red-500">Error loading queue.</td></tr>`;
+            }
+        }
+
+        async function fetchHistory() {
+            try {
+                const response = await fetch('/api/history');
+                if (!response.ok) throw new Error('Failed to fetch history');
+                const data = await response.json();
+
+                const tbody = document.getElementById('history-body');
+                tbody.innerHTML = '';
+
+                if (data.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-gray-500">No history available.</td></tr>`;
+                    return;
+                }
+
+                data.forEach(item => {
+                    const tr = document.createElement('tr');
+                    tr.className = 'hover:bg-gray-700/50 transition-colors';
+
+                    let statusBadge = '';
+                    let actionButton = '';
+
+                    if (item.status === 'downloaded') {
+                        statusBadge = `<span class="bg-green-900/50 text-green-300 py-1 px-3 rounded-full text-xs font-semibold border border-green-800">Downloaded</span>`;
+                    } else if (item.status === 'failed') {
+                        statusBadge = `<span class="bg-red-900/50 text-red-300 py-1 px-3 rounded-full text-xs font-semibold border border-red-800" title="${item.details || 'Unknown error'}">Failed</span>`;
+                        actionButton = `<button onclick="retryChapter(${item.chapter_id})" class="text-blue-400 hover:text-blue-300 hover:underline text-sm">Retry</button>`;
+                    } else {
+                        statusBadge = `<span class="bg-gray-700 text-gray-300 py-1 px-3 rounded-full text-xs font-semibold">${item.status}</span>`;
+                    }
+
+                    const date = new Date(item.timestamp).toLocaleString();
+
+                    tr.innerHTML = `
+                        <td class="p-3 text-gray-400 text-sm">${date}</td>
+                        <td class="p-3 font-medium text-gray-200">${item.story_title}</td>
+                        <td class="p-3 text-gray-400">${item.chapter_title}</td>
+                        <td class="p-3">${statusBadge}</td>
+                        <td class="p-3 text-right">${actionButton}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+
+            } catch (err) {
+                console.error("History fetch error:", err);
+                document.getElementById('history-body').innerHTML = `<tr><td colspan="5" class="p-4 text-center text-red-500">Error loading history.</td></tr>`;
+            }
+        }
+
+        async function retryChapter(chapterId) {
+            try {
+                const response = await fetch(`/api/chapter/${chapterId}/retry`, { method: 'POST' });
+                if (!response.ok) throw new Error('Failed to retry');
+
+                // Refresh history to show update (or just alert)
+                fetchHistory();
+                fetchQueue();
+                alert("Chapter queued for retry.");
+            } catch (err) {
+                console.error("Retry error:", err);
+                alert("Failed to retry chapter.");
+            }
+        }
+
+        // Initial fetch
+        fetchQueue();
+        // Poll every 5 seconds
+        setInterval(() => {
+            // Only poll the active tab
+            if (!document.getElementById('queue-content').classList.contains('hidden')) {
+                fetchQueue();
+            } else {
+                fetchHistory();
+            }
+        }, 5000);
+    </script>
+{% endblock %}

@@ -3,7 +3,7 @@ import time
 import os
 from apscheduler.schedulers.background import BackgroundScheduler
 from sqlalchemy import func
-from database import SessionLocal, Story, Chapter, init_db
+from database import SessionLocal, Story, Chapter, DownloadHistory, init_db
 from story_manager import StoryManager
 from config import config_manager
 
@@ -150,6 +150,15 @@ class JobManager:
                     chapter.local_path = filepath
                     chapter.is_downloaded = True
                     chapter.status = 'downloaded'
+
+                    history = DownloadHistory(
+                        chapter_id=chapter.id,
+                        story_id=story.id,
+                        status='downloaded',
+                        details=f"Downloaded successfully to {filename}"
+                    )
+                    session.add(history)
+
                     session.commit()
                     logger.info(f"Successfully downloaded: {chapter.title}")
 
@@ -157,6 +166,15 @@ class JobManager:
                     logger.error(f"Failed to download chapter {chapter.title}: {e}")
                     # Error Handling: If the download fails, change the status to failed so we can track it.
                     chapter.status = 'failed'
+
+                    history = DownloadHistory(
+                        chapter_id=chapter.id,
+                        story_id=story.id,
+                        status='failed',
+                        details=str(e)
+                    )
+                    session.add(history)
+
                     session.commit()
 
             else:

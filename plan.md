@@ -32,14 +32,14 @@ These features bring Scrollarr closer to the expected functionality of Sonarr/Ra
         -   Add a `search(query)` method to `BaseSource`.
         -   Implement search scraping for Royal Road and AO3.
         -   Create a "Search" page in the UI to query providers and "Add" stories directly from results.
-6.  **Activity & Queue Management (The "Activity" Tab)**
-    -   **Feature:** View current downloads, history, and failures.
-    -   **Implementation:**
-        -   Create a `DownloadHistory` table.
-        -   Build an "Activity" page showing:
-            -   **Queue:** Currently downloading chapters with progress (if possible) or status.
-            -   **History:** List of recently downloaded/failed chapters with timestamps.
-        -   Add "Retry" button for failed downloads.
+6.  ~~**Activity & Queue Management (The "Activity" Tab)**~~
+    -   ~~**Feature:** View current downloads, history, and failures.~~
+    -   ~~**Implementation:**~~
+        -   ~~Create a `DownloadHistory` table.~~
+        -   ~~Build an "Activity" page showing:~~
+            -   ~~**Queue:** Currently downloading chapters with progress (if possible) or status.~~
+            -   ~~**History:** List of recently downloaded/failed chapters with timestamps.~~
+        -   ~~Add "Retry" button for failed downloads.~~
 7.  **Manual Interaction (The "Interactive Search")**
     -   **Feature:** Manually trigger a search/update for a specific story or chapter.
     -   **Implementation:** Add "Search for Updates" and "Force Download" buttons on the Story Details page.

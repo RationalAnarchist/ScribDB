@@ -7,9 +7,10 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
+from sqlalchemy import desc
 from pydantic import BaseModel
 
-from database import SessionLocal, Story, Chapter, Source
+from database import SessionLocal, Story, Chapter, Source, DownloadHistory
 from story_manager import StoryManager
 from ebook_builder import EbookBuilder
 from job_manager import JobManager
@@ -95,10 +96,10 @@ async def add_new_page(request: Request):
     """Render the add new story page."""
     return templates.TemplateResponse("add_new.html", {"request": request})
 
-@app.get("/queue", response_class=HTMLResponse)
-async def queue_page(request: Request):
-    """Render the download queue page."""
-    return templates.TemplateResponse("queue.html", {"request": request})
+@app.get("/activity", response_class=HTMLResponse)
+async def activity_page(request: Request):
+    """Render the activity page."""
+    return templates.TemplateResponse("activity.html", {"request": request})
 
 @app.get("/settings", response_class=HTMLResponse)
 async def settings_page(request: Request):
@@ -126,6 +127,35 @@ async def get_queue(db: Session = Depends(get_db)):
             "index": chapter.index
         })
     return result
+
+@app.get("/api/history")
+async def get_history(db: Session = Depends(get_db)):
+    """Get download history."""
+    history = db.query(DownloadHistory).order_by(desc(DownloadHistory.timestamp)).limit(100).all()
+
+    result = []
+    for h in history:
+        result.append({
+            "id": h.id,
+            "story_title": h.story.title if h.story else "Unknown Story",
+            "chapter_title": h.chapter.title if h.chapter else "Unknown Chapter",
+            "status": h.status,
+            "timestamp": h.timestamp.isoformat() if h.timestamp else None,
+            "details": h.details,
+            "chapter_id": h.chapter_id
+        })
+    return result
+
+@app.post("/api/chapter/{chapter_id}/retry")
+async def retry_chapter(chapter_id: int, db: Session = Depends(get_db)):
+    """Retry a failed chapter."""
+    chapter = db.query(Chapter).filter(Chapter.id == chapter_id).first()
+    if not chapter:
+        raise HTTPException(status_code=404, detail="Chapter not found")
+
+    chapter.status = 'pending'
+    db.commit()
+    return {"message": "Chapter queued for retry"}
 
 @app.get("/api/settings")
 async def get_settings():
