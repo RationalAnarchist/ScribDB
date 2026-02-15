@@ -1,6 +1,6 @@
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
-from typing import List, Dict
+from typing import List, Dict, Optional
 
 from core_logic import BaseSource
 from polite_requester import PoliteRequester
@@ -8,8 +8,11 @@ from polite_requester import PoliteRequester
 class RoyalRoadSource(BaseSource):
     BASE_URL = "https://www.royalroad.com"
 
-    def __init__(self):
-        self.requester = PoliteRequester()
+    def __init__(self, requester: Optional[PoliteRequester] = None):
+        if requester:
+            self.requester = requester
+        else:
+            self.requester = PoliteRequester()
 
     def identify(self, url: str) -> bool:
         return 'royalroad.com' in url

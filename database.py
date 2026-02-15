@@ -1,10 +1,6 @@
 import os
 from sqlalchemy import create_engine, Column, Integer, String, Boolean, ForeignKey, text, DateTime
 from sqlalchemy.orm import declarative_base, relationship, sessionmaker, Session
-from sqlalchemy.sql import func
-from typing import Optional
-from core_logic import SourceManager
-from royalroad import RoyalRoadSource
 
 Base = declarative_base()
 
@@ -81,86 +77,6 @@ def migrate_db(engine):
                 conn.execute(text("ALTER TABLE chapters ADD COLUMN 'index' INTEGER"))
         except Exception as e:
             print(f"Migration error (chapters): {e}")
-
-def sync_story(url: str, session: Optional[Session] = None):
-    """
-    Fetches the latest chapters for the story at the given URL and updates the database.
-    """
-    # 1. Setup SourceManager
-    manager = SourceManager()
-    manager.register_provider(RoyalRoadSource())
-
-    # 2. Get Provider
-    provider = manager.get_provider_for_url(url)
-    if not provider:
-        raise ValueError(f"No provider found for URL: {url}")
-
-    # 3. Fetch Data
-    metadata = provider.get_metadata(url)
-    chapters_data = provider.get_chapter_list(url)
-
-    # 4. Update Database
-    should_close = False
-    if session is None:
-        session = SessionLocal()
-        should_close = True
-
-    try:
-        # Check if story exists
-        story = session.query(Story).filter(Story.source_url == url).first()
-
-        if not story:
-            story = Story(
-                title=metadata.get('title', 'Unknown'),
-                author=metadata.get('author', 'Unknown'),
-                source_url=url,
-                cover_path=None,
-                status='Monitoring'
-            )
-            session.add(story)
-            session.flush() # Ensure ID is available
-        else:
-            # Update metadata if needed
-            story.title = metadata.get('title', story.title)
-            story.author = metadata.get('author', story.author)
-
-        # If story is new, story.chapters is empty.
-        # If story exists, story.chapters contains current DB chapters.
-        existing_chapters = {}
-        if story.chapters:
-             existing_chapters = {c.source_url: c for c in story.chapters}
-
-        new_chapters_count = 0
-        for i, chapter_data in enumerate(chapters_data):
-            chapter_url = chapter_data['url']
-            chapter_title = chapter_data['title']
-
-            if chapter_url not in existing_chapters:
-                new_chapter = Chapter(
-                    title=chapter_title,
-                    source_url=chapter_url,
-                    index=i + 1
-                )
-                # Associate with story
-                story.chapters.append(new_chapter)
-                new_chapters_count += 1
-            else:
-                # Update index if it's missing or changed
-                existing_chap = existing_chapters[chapter_url]
-                if existing_chap.index != i + 1:
-                    existing_chap.index = i + 1
-
-        if new_chapters_count > 0:
-            story.last_updated = func.now()
-
-        session.commit()
-
-    except Exception as e:
-        session.rollback()
-        raise e
-    finally:
-        if should_close:
-            session.close()
 
 if __name__ == "__main__":
     init_db()

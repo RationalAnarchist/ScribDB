@@ -4,8 +4,11 @@ from royalroad import RoyalRoadSource
 
 class TestRoyalRoadSource(unittest.TestCase):
     def setUp(self):
-        self.rr = RoyalRoadSource()
-        self.rr.requester.get = MagicMock()
+        self.mock_requester = MagicMock()
+        self.rr = RoyalRoadSource(requester=self.mock_requester)
+
+    def test_dependency_injection(self):
+        self.assertIs(self.rr.requester, self.mock_requester)
 
     def test_get_chapter_list(self):
         html = """
@@ -29,6 +32,21 @@ class TestRoyalRoadSource(unittest.TestCase):
         self.assertEqual(chapters[0]['title'], "Chapter 1: The Beginning")
         self.assertEqual(chapters[0]['url'], "https://www.royalroad.com/fiction/123/chapter/1")
         self.assertEqual(chapters[1]['title'], "Chapter 2: The End")
+
+    def test_get_chapter_content_returns_html(self):
+        html = """
+        <html>
+            <body>
+                <div class="chapter-inner chapter-content">
+                    <p><i>Italic</i> and <b>Bold</b></p>
+                </div>
+            </body>
+        </html>
+        """
+        self.mock_requester.get.return_value.text = html
+        content = self.rr.get_chapter_content("http://example.com/chapter/html")
+        self.assertIn("<i>Italic</i>", content)
+        self.assertIn("<b>Bold</b>", content)
 
     def test_get_chapter_content_removes_unwanted(self):
         html = """

@@ -76,6 +76,19 @@ class TestStoryManager(unittest.TestCase):
 
         session.close()
 
+    def test_add_story_does_not_download(self):
+        # Ensure saved_stories is empty
+        if os.path.exists("saved_stories"):
+            shutil.rmtree("saved_stories")
+
+        self.manager.add_story("http://example.com/story")
+
+        # Verify no files were downloaded
+        # The saved_stories directory might not even exist
+        if os.path.exists("saved_stories"):
+            for root, dirs, files in os.walk("saved_stories"):
+                self.assertEqual(len(files), 0, "Found files in saved_stories, but add_story should not download content.")
+
     def test_download_missing_chapters(self):
         # First add the story
         story_id = self.manager.add_story("http://example.com/story")
