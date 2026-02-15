@@ -1,11 +1,63 @@
 import unittest
 from unittest.mock import MagicMock
 from royalroad import RoyalRoadSource
+import json
 
 class TestRoyalRoadSource(unittest.TestCase):
     def setUp(self):
         self.rr = RoyalRoadSource()
         self.rr.requester.get = MagicMock()
+
+    def test_get_metadata(self):
+        html = """
+        <html>
+            <body>
+                <div class="fiction-header">
+                    <h1>My RR Story</h1>
+                    <h4>
+                        <span class="small">by </span>
+                        <span>
+                            <a href="/profile/123">The Author</a>
+                        </span>
+                    </h4>
+                </div>
+                <div class="description">
+                    <div class="hidden-content">
+                        <p>This is the synopsis.</p>
+                    </div>
+                </div>
+                <div class="fiction-info">
+                    <span class="label label-default label-sm bg-blue-hoki">ONGOING</span>
+                    <span class="tags">
+                        <span class="fiction-tag">LitRPG</span>
+                        <span class="fiction-tag">Fantasy</span>
+                    </span>
+                </div>
+                <script type="application/ld+json">
+                {
+                    "@context": "https://schema.org",
+                    "@type": "Book",
+                    "name": "My RR Story",
+                    "aggregateRating": {
+                        "@type": "AggregateRating",
+                        "ratingValue": 4.5
+                    },
+                    "genre": ["LitRPG", "Fantasy"]
+                }
+                </script>
+            </body>
+        </html>
+        """
+        self.rr.requester.get.return_value = MagicMock(text=html)
+        metadata = self.rr.get_metadata("https://www.royalroad.com/fiction/123")
+
+        self.assertEqual(metadata['title'], "My RR Story")
+        self.assertEqual(metadata['author'], "The Author")
+        self.assertIn("This is the synopsis.", metadata['description'])
+        self.assertEqual(metadata['rating'], "4.5")
+        self.assertIn("LitRPG", metadata['tags'])
+        self.assertIn("Fantasy", metadata['tags'])
+        self.assertEqual(metadata['publication_status'], "Ongoing")
 
     def test_get_chapter_list(self):
         html = """

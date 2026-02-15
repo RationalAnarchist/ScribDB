@@ -1,6 +1,7 @@
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 from typing import List, Dict
+import json
 
 from core_logic import BaseSource
 from polite_requester import PoliteRequester
@@ -45,11 +46,45 @@ class RoyalRoadSource(BaseSource):
         if cover_img and cover_img.has_attr('src'):
             cover_url = urljoin(self.BASE_URL, cover_img['src'])
 
+        # New metadata fields
+        tags = []
+        for tag in soup.select('.tags .fiction-tag'):
+            tags.append(tag.get_text(strip=True))
+
+        rating = None
+        # Try JSON-LD first
+        ld_json = soup.find('script', type='application/ld+json')
+        if ld_json:
+            try:
+                data = json.loads(ld_json.string)
+                if 'aggregateRating' in data:
+                    rating = str(round(float(data['aggregateRating'].get('ratingValue', 0)), 2))
+                if not tags and 'genre' in data:
+                    # JSON-LD genre is a list of strings
+                    tags = data['genre']
+            except Exception:
+                pass
+
+        status = "Unknown"
+        # Look for status label in labels
+        status_labels = soup.select('.label')
+        for label in status_labels:
+            text = label.get_text(strip=True).upper()
+            if text in ['COMPLETED', 'ONGOING', 'HIATUS', 'DROPPED', 'STUB']:
+                status = text.title()
+                break
+
+        language = "English"
+
         return {
             'title': title,
             'author': author,
             'description': description,
-            'cover_url': cover_url
+            'cover_url': cover_url,
+            'tags': ", ".join(tags) if tags else None,
+            'rating': rating,
+            'language': language,
+            'publication_status': status
         }
 
     def get_chapter_list(self, url: str) -> List[Dict]:

@@ -79,7 +79,12 @@ class StoryManager:
                     author=metadata.get('author', 'Unknown'),
                     source_url=url,
                     cover_path=metadata.get('cover_url'),
-                    status='Monitoring'
+                    status='Monitoring',
+                    description=metadata.get('description'),
+                    tags=metadata.get('tags'),
+                    rating=metadata.get('rating'),
+                    language=metadata.get('language'),
+                    publication_status=metadata.get('publication_status', 'Unknown')
                 )
                 session.add(story)
                 session.flush()
@@ -87,7 +92,12 @@ class StoryManager:
                 logger.info("Updating existing story record.")
                 story.title = metadata.get('title', story.title)
                 story.author = metadata.get('author', story.author)
-                # cover might be updated too if needed
+                story.cover_path = metadata.get('cover_url', story.cover_path)
+                story.description = metadata.get('description', story.description)
+                story.tags = metadata.get('tags', story.tags)
+                story.rating = metadata.get('rating', story.rating)
+                story.language = metadata.get('language', story.language)
+                story.publication_status = metadata.get('publication_status', story.publication_status)
 
             # Handle chapters
             existing_urls = {c.source_url: c for c in story.chapters}
@@ -224,6 +234,20 @@ class StoryManager:
                     if not provider:
                         logger.warning(f"No provider found for story: {story.title} ({story.source_url})")
                         continue
+
+                    # Fetch metadata and update story
+                    try:
+                        metadata = provider.get_metadata(story.source_url)
+                        story.title = metadata.get('title', story.title)
+                        story.author = metadata.get('author', story.author)
+                        story.cover_path = metadata.get('cover_url', story.cover_path)
+                        story.description = metadata.get('description', story.description)
+                        story.tags = metadata.get('tags', story.tags)
+                        story.rating = metadata.get('rating', story.rating)
+                        story.language = metadata.get('language', story.language)
+                        story.publication_status = metadata.get('publication_status', story.publication_status)
+                    except Exception as meta_err:
+                        logger.warning(f"Failed to update metadata for {story.title}: {meta_err}")
 
                     # Fetch current chapters from source
                     remote_chapters = provider.get_chapter_list(story.source_url)
