@@ -49,6 +49,7 @@ class SettingsRequest(BaseModel):
     min_delay: float = 2.0
     max_delay: float = 5.0
     user_agent: str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    cookie: Optional[str] = None
     update_interval_hours: int = 1
     worker_sleep_min: float = 30.0
     worker_sleep_max: float = 60.0
@@ -146,6 +147,7 @@ async def update_settings(settings: SettingsRequest):
         config_manager.set("min_delay", settings.min_delay)
         config_manager.set("max_delay", settings.max_delay)
         config_manager.set("user_agent", settings.user_agent)
+        config_manager.set("cookie", settings.cookie)
         config_manager.set("update_interval_hours", settings.update_interval_hours)
         config_manager.set("worker_sleep_min", settings.worker_sleep_min)
         config_manager.set("worker_sleep_max", settings.worker_sleep_max)

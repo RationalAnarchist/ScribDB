@@ -1,9 +1,8 @@
-2026-02-15 23:06:47,782 - INFO - root - Logging configured. Level: INFO, File: logs/scrollarr.log
+2026-02-15 23:20:23,185 - INFO - root - Logging configured. Level: INFO, File: logs/scrollarr.log
 Checking for database migrations...
 Running alembic upgrade head...
 INFO  [alembic.runtime.migration] Context impl SQLiteImpl.
 INFO  [alembic.runtime.migration] Will assume non-transactional DDL.
-INFO  [alembic.runtime.migration] Running upgrade  -> 5a15aa3bb629, Initial migration
 INFO  [alembic.runtime.migration] Context impl SQLiteImpl.
 INFO  [alembic.runtime.migration] Will assume non-transactional DDL.
 INFO  [alembic.runtime.migration] Context impl SQLiteImpl.

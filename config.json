@@ -7,5 +7,6 @@
     "worker_sleep_min": 30.0,
     "worker_sleep_max": 60.0,
     "database_url": "sqlite:///library.db",
-    "log_level": "INFO"
+    "log_level": "INFO",
+    "cookie": "test_cookie=123"
 }

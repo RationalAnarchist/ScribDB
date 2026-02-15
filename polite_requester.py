@@ -29,6 +29,11 @@ class PoliteRequester:
             'Sec-Fetch-User': '?1',
         }
 
+        # Add cookie if configured (for Cloudflare bypass)
+        cookie = config_manager.get('cookie')
+        if cookie:
+            self.headers['Cookie'] = cookie
+
     def get(self, url: str) -> requests.Response:
         """
         Sends a GET request to the specified URL with a random delay.

@@ -1,7 +1,8 @@
 from bs4 import BeautifulSoup
-from urllib.parse import urljoin
+from urllib.parse import urljoin, quote
 from typing import List, Dict, Optional
 import re
+import logging
 
 from core_logic import BaseSource
 from polite_requester import PoliteRequester
@@ -110,9 +111,66 @@ class AO3Source(BaseSource):
         return chapters
 
     def search(self, query: str) -> List[Dict]:
-        # AO3 search is blocked by Cloudflare in this environment (525 error).
-        # Returning empty list for now.
-        return []
+        """
+        Searches AO3 for stories.
+        Note: AO3 is often behind Cloudflare. The user may need to provide a
+        valid 'Cookie' string in settings for this to work.
+        """
+        search_url = f"{self.BASE_URL}/works/search?work_search[query]={quote(query)}"
+
+        try:
+            response = self.requester.get(search_url)
+        except Exception as e:
+            logging.error(f"AO3 Search failed (likely Cloudflare block). Ensure valid cookies are set. Error: {e}")
+            return []
+
+        soup = BeautifulSoup(response.text, 'html.parser')
+        results = []
+
+        # AO3 search results are in <li class="work blurb group" ...>
+        for work in soup.select('li.work.blurb'):
+            # Title: h4.heading > a:first-child
+            title_tag = work.select_one('h4.heading a[href^="/works/"]')
+            if not title_tag:
+                continue
+
+            title = title_tag.get_text(strip=True)
+            url = urljoin(self.BASE_URL, title_tag['href'])
+
+            # Author: h4.heading > a[rel="author"]
+            # Sometimes there are multiple authors or "Anonymous"
+            author_tags = work.select('h4.heading a[rel="author"]')
+            if author_tags:
+                author = ", ".join([a.get_text(strip=True) for a in author_tags])
+            else:
+                # Check if it's anonymous or orphaned
+                if "Anonymous" in work.select_one('h4.heading').get_text():
+                    author = "Anonymous"
+                else:
+                    author = "Unknown"
+
+            # Description (Summary): blockquote.userstuff.summary
+            summary_tag = work.select_one('blockquote.userstuff.summary')
+            description = summary_tag.get_text("\n", strip=True) if summary_tag else "No description available."
+
+            # Stats (status)
+            # dl.stats > dd.status
+            # We can infer status from chapters: 1/1 (Completed), 1/? (Ongoing)
+            # But 'status' field isn't explicitly used in search result dict yet beyond description
+
+            # Cover: AO3 has no covers. Use default or None.
+            cover_url = None
+
+            results.append({
+                'title': title,
+                'url': url,
+                'author': author,
+                'description': description,
+                'cover_url': cover_url,
+                'source_key': self.key
+            })
+
+        return results
 
     def get_chapter_content(self, chapter_url: str) -> str:
         response = self.requester.get(chapter_url)

@@ -103,7 +103,7 @@ class RoyalRoadSource(BaseSource):
             results.append({
                 'title': title,
                 'url': url,
-                'author': 'Unknown',
+                'author': 'Unknown',  # Author is not listed in search results
                 'description': description,
                 'cover_url': cover_url,
                 'source_key': self.key
