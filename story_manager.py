@@ -1,7 +1,7 @@
 import os
 import logging
 from typing import Optional
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy.sql import func
 from core_logic import SourceManager
 from royalroad import RoyalRoadSource
@@ -71,7 +71,8 @@ class StoryManager:
                         title=chapter_data['title'],
                         source_url=c_url,
                         story_id=story.id,
-                        index=i + 1
+                        index=i + 1,
+                        status='pending'
                     )
                     session.add(new_chapter)
                     new_chapters_count += 1
@@ -81,6 +82,7 @@ class StoryManager:
                     if existing_chap.index != i + 1:
                         existing_chap.index = i + 1
 
+            story.last_checked = func.now()
             if new_chapters_count > 0:
                 story.last_updated = func.now()
 
@@ -92,6 +94,21 @@ class StoryManager:
             session.rollback()
             logger.error(f"Error adding story: {e}")
             raise e
+        finally:
+            session.close()
+
+    def get_pending_chapters(self):
+        """
+        Returns all chapters marked as 'pending' across all monitored stories.
+        """
+        session = SessionLocal()
+        try:
+            chapters = session.query(Chapter).join(Story).options(joinedload(Chapter.story)).filter(
+                Story.is_monitored == True,
+                Chapter.status == 'pending'
+            ).all()
+            session.expunge_all()
+            return chapters
         finally:
             session.close()
 
@@ -206,10 +223,13 @@ class StoryManager:
 
                     chapter.local_path = filepath
                     chapter.is_downloaded = True
+                    chapter.status = 'downloaded'
                     session.commit() # Commit after each chapter to save progress
 
                 except Exception as e:
                     logger.error(f"Failed to download chapter {chapter.title}: {e}")
+                    chapter.status = 'failed'
+                    session.commit()
                     # Optionally continue to next chapter or break
         finally:
             session.close()

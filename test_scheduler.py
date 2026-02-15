@@ -30,7 +30,7 @@ class TestScheduler(unittest.TestCase):
     @patch('scheduler.StoryManager')
     def test_check_for_updates_monitored_story_with_updates(self, MockStoryManager):
         # Setup data
-        story = Story(title="Test Story", author="Author", source_url="http://example.com/story", monitored=True)
+        story = Story(title="Test Story", author="Author", source_url="http://example.com/story", is_monitored=True)
         self.session.add(story)
         self.session.commit()
 
@@ -59,7 +59,7 @@ class TestScheduler(unittest.TestCase):
     @patch('scheduler.StoryManager')
     def test_check_for_updates_monitored_story_no_updates(self, MockStoryManager):
         # Setup data
-        story = Story(title="Test Story", author="Author", source_url="http://example.com/story", monitored=True)
+        story = Story(title="Test Story", author="Author", source_url="http://example.com/story", is_monitored=True)
         self.session.add(story)
         self.session.commit()
 
@@ -87,7 +87,7 @@ class TestScheduler(unittest.TestCase):
     @patch('scheduler.StoryManager')
     def test_check_for_updates_not_monitored_story(self, MockStoryManager):
         # Setup data
-        story = Story(title="Test Story", author="Author", source_url="http://example.com/story", monitored=False)
+        story = Story(title="Test Story", author="Author", source_url="http://example.com/story", is_monitored=False)
         self.session.add(story)
         self.session.commit()
 

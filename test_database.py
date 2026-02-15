@@ -43,6 +43,7 @@ class TestDatabase(unittest.TestCase):
         self.assertEqual(story.title, 'Test Story')
         self.assertEqual(story.author, 'Test Author')
         self.assertEqual(story.status, 'Monitoring')
+        self.assertTrue(story.is_monitored)
 
         # Verify Chapters created
         chapters = self.session.query(Chapter).filter_by(story_id=story.id).order_by(Chapter.index).all()
@@ -51,6 +52,8 @@ class TestDatabase(unittest.TestCase):
         self.assertEqual(titles, ['Chapter 1', 'Chapter 2'])
         self.assertEqual(chapters[0].index, 1)
         self.assertEqual(chapters[1].index, 2)
+        self.assertEqual(chapters[0].volume_number, 1)
+        self.assertEqual(chapters[0].status, 'pending')
 
     @patch('database.SourceManager')
     def test_sync_story_update(self, MockSourceManager):

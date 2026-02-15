@@ -22,7 +22,7 @@ def check_for_updates():
 
     try:
         # Query monitored stories
-        monitored_stories = session.query(Story).filter(Story.monitored == True).all()
+        monitored_stories = session.query(Story).filter(Story.is_monitored == True).all()
 
         logger.info(f"Found {len(monitored_stories)} monitored stories.")
 
