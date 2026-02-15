@@ -17,7 +17,9 @@ class Story(Base):
     source_url = Column(String, unique=True, nullable=False)
     cover_path = Column(String, nullable=True)
     monitored = Column(Boolean, default=True)
+    is_monitored = Column(Boolean, default=True)
     last_updated = Column(DateTime, nullable=True)
+    last_checked = Column(DateTime, nullable=True)
     status = Column(String, default='Monitoring')
 
     chapters = relationship("Chapter", back_populates="story", cascade="all, delete-orphan")
@@ -34,8 +36,9 @@ class Chapter(Base):
     source_url = Column(String, nullable=False)
     local_path = Column(String, nullable=True)
     is_downloaded = Column(Boolean, default=False)
-    volume_number = Column(Integer, nullable=True)
+    volume_number = Column(Integer, default=1)
     index = Column(Integer, nullable=True)
+    status = Column(String, default='pending')
 
     story = relationship("Story", back_populates="chapters")
 
@@ -69,6 +72,11 @@ def migrate_db(engine):
                 conn.execute(text("ALTER TABLE stories ADD COLUMN last_updated DATETIME"))
             if 'status' not in columns:
                 conn.execute(text("ALTER TABLE stories ADD COLUMN status VARCHAR DEFAULT 'Monitoring'"))
+            if 'is_monitored' not in columns:
+                conn.execute(text("ALTER TABLE stories ADD COLUMN is_monitored BOOLEAN DEFAULT 1"))
+                conn.execute(text("UPDATE stories SET is_monitored = monitored WHERE is_monitored IS NULL"))
+            if 'last_checked' not in columns:
+                conn.execute(text("ALTER TABLE stories ADD COLUMN last_checked DATETIME"))
         except Exception as e:
             print(f"Migration error (stories): {e}")
 
@@ -76,9 +84,14 @@ def migrate_db(engine):
             result = conn.execute(text("PRAGMA table_info(chapters)"))
             columns = [row[1] for row in result.fetchall()]
             if 'volume_number' not in columns:
-                conn.execute(text("ALTER TABLE chapters ADD COLUMN volume_number INTEGER"))
+                conn.execute(text("ALTER TABLE chapters ADD COLUMN volume_number INTEGER DEFAULT 1"))
+                conn.execute(text("UPDATE chapters SET volume_number = 1 WHERE volume_number IS NULL"))
             if 'index' not in columns:
                 conn.execute(text("ALTER TABLE chapters ADD COLUMN 'index' INTEGER"))
+            if 'status' not in columns:
+                conn.execute(text("ALTER TABLE chapters ADD COLUMN status VARCHAR DEFAULT 'pending'"))
+                conn.execute(text("UPDATE chapters SET status = 'downloaded' WHERE is_downloaded = 1"))
+                conn.execute(text("UPDATE chapters SET status = 'pending' WHERE is_downloaded = 0 OR is_downloaded IS NULL"))
         except Exception as e:
             print(f"Migration error (chapters): {e}")
 

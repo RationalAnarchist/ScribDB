@@ -120,5 +120,22 @@ class TestStoryManager(unittest.TestCase):
         if os.path.exists(output_path):
             os.remove(output_path)
 
+    def test_get_pending_chapters(self):
+        story_id = self.manager.add_story("http://example.com/story")
+        pending_chapters = self.manager.get_pending_chapters()
+
+        self.assertEqual(len(pending_chapters), 2)
+        self.assertEqual(pending_chapters[0].story_id, story_id)
+        self.assertEqual(pending_chapters[0].status, 'pending')
+
+        # Verify story is loaded
+        self.assertEqual(pending_chapters[0].story.title, 'Test Story')
+
+        # Download chapters
+        self.manager.download_missing_chapters(story_id)
+
+        pending_chapters = self.manager.get_pending_chapters()
+        self.assertEqual(len(pending_chapters), 0)
+
 if __name__ == '__main__':
     unittest.main()
