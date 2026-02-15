@@ -12,9 +12,9 @@ Before adding complex features, we must ensure the foundation is robust.
 2.  ~~**Database Migrations**~~
     -   ~~**Problem:** Schema changes are currently manual (`migrate_db` in `database.py`).~~
     -   ~~**Solution:** Implement `Alembic` for proper database migrations to handle future schema changes safely.~~
-3.  **Logging & Error Handling**
-    -   **Problem:** Logs are scattered.
-    -   **Solution:** Centralize logging to a file and the console. Expose logs in the UI later.
+3.  ~~**Logging & Error Handling**~~
+    -   ~~**Problem:** Logs are scattered.~~
+    -   ~~**Solution:** Centralize logging to a file and the console. Expose logs in the UI later.~~
 
 ## Phase 2: Core "Arr" Features (Short Term)
 
