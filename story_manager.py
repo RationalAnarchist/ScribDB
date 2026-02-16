@@ -654,14 +654,18 @@ class StoryManager:
                          intervals.append(delta.total_seconds())
 
                      avg = sum(intervals) / len(intervals)
-                     next_date = sorted_dates[-1] + timedelta(seconds=avg)
 
-                     events.append({
-                        'title': f"{story.title} - Next (Predicted)",
-                        'start': next_date.isoformat(),
-                        'color': '#28a745', # Green
-                        'url': f"/story/{story.id}"
-                     })
+                     # Predict next 5 chapters
+                     last_date = sorted_dates[-1]
+                     for i in range(1, 6):
+                        next_date = last_date + timedelta(seconds=avg * i)
+                        events.append({
+                            'title': f"{story.title} - Predicted",
+                            'start': next_date.isoformat(),
+                            'color': '#28a745', # Green
+                            'url': f"/story/{story.id}",
+                            'allDay': True
+                        })
 
             return events
         finally:
