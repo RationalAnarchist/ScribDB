@@ -12,11 +12,18 @@ class TestEbookBuilderVolume(unittest.TestCase):
     def setUp(self):
         self.builder = EbookBuilder()
 
+    @patch('config.config_manager')
     @patch('database.Chapter')
     @patch('database.Story')
     @patch('database.SessionLocal')
     @patch.object(EbookBuilder, 'make_epub')
-    def test_compile_volume_success(self, mock_make_epub, MockSessionLocal, MockStory, MockChapter):
+    def test_compile_volume_success(self, mock_make_epub, MockSessionLocal, MockStory, MockChapter, mock_config_manager):
+        # Setup mock config
+        mock_config_manager.get.side_effect = lambda key, default=None: {
+            'library_path': 'library',
+            'filename_pattern': '{Title} - Vol {Volume}'
+        }.get(key, default)
+
         # Setup mock session
         mock_session = MagicMock()
         MockSessionLocal.return_value = mock_session
@@ -62,7 +69,8 @@ class TestEbookBuilderVolume(unittest.TestCase):
 
         # Verify assertions
         expected_title = "Test Story - Vol 1"
-        expected_filename = "Test_Story_-_Vol_1.epub"
+        # Spaces are preserved in new sanitization logic, and library path is prepended
+        expected_filename = "library/Test Story - Vol 1.epub"
         self.assertEqual(output_path, expected_filename)
 
         expected_chapters = [

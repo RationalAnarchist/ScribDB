@@ -19,6 +19,18 @@
                 <p class="text-xs text-gray-500 mt-2">The directory where chapters will be downloaded.</p>
             </div>
 
+            <h2 class="text-xl font-bold mb-4 text-gray-200 mt-8">Library Organization</h2>
+            <div class="mb-4">
+                <label class="block text-gray-300 text-sm font-bold mb-2" for="library-path">Library Path</label>
+                <input type="text" id="library-path" name="library_path" class="w-full p-3 rounded bg-gray-700 text-white border border-gray-600 focus:outline-none focus:border-blue-500 transition-colors" placeholder="e.g. library">
+                <p class="text-xs text-gray-500 mt-2">The directory where generated EPUBs will be saved.</p>
+            </div>
+            <div class="mb-6">
+                <label class="block text-gray-300 text-sm font-bold mb-2" for="filename-pattern">Filename Pattern</label>
+                <input type="text" id="filename-pattern" name="filename_pattern" class="w-full p-3 rounded bg-gray-700 text-white border border-gray-600 focus:outline-none focus:border-blue-500 transition-colors" placeholder="e.g. {Title} - Vol {Volume}">
+                <p class="text-xs text-gray-500 mt-2">Available variables: {Title}, {Author}, {Volume}</p>
+            </div>
+
             <h2 class="text-xl font-bold mb-4 text-gray-200 mt-8">Network & Politeness</h2>
             <div class="grid grid-cols-2 gap-4 mb-4">
                 <div>
@@ -86,6 +98,8 @@
                 const data = await response.json();
 
                 document.getElementById('download-path').value = data.download_path || '';
+                document.getElementById('library-path').value = data.library_path || 'library';
+                document.getElementById('filename-pattern').value = data.filename_pattern || '{Title} - Vol {Volume}';
                 document.getElementById('min-delay').value = data.min_delay || 2.0;
                 document.getElementById('max-delay').value = data.max_delay || 5.0;
                 document.getElementById('user-agent').value = data.user_agent || '';
@@ -112,6 +126,8 @@
 
             const payload = {
                 download_path: document.getElementById('download-path').value,
+                library_path: document.getElementById('library-path').value,
+                filename_pattern: document.getElementById('filename-pattern').value,
                 min_delay: parseFloat(document.getElementById('min-delay').value),
                 max_delay: parseFloat(document.getElementById('max-delay').value),
                 user_agent: document.getElementById('user-agent').value,
