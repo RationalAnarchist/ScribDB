@@ -11,10 +11,12 @@ from database import Story, Chapter, SessionLocal, Base, engine
 
 class TestStoryManager(unittest.TestCase):
     def setUp(self):
-        # Drop all tables and recreate them to ensure clean state
-        Base.metadata.drop_all(bind=engine)
-        Base.metadata.create_all(bind=engine)
+        # Ensure we start with a clean state
+        engine.dispose()
+        if os.path.exists("test_library.db"):
+            os.remove("test_library.db")
 
+        # Initialize manager (which will run migrations and create DB)
         self.manager = StoryManager()
 
         # Mock the provider
