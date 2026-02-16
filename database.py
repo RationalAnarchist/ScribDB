@@ -103,21 +103,6 @@ def run_migrations():
 
     alembic_cfg = alembic.config.Config(alembic_ini_path)
 
-    # Check if tables exist but no alembic_version (existing non-alembic DB)
-    inspector = inspect(engine)
-    try:
-        tables = inspector.get_table_names()
-    except Exception:
-        # DB might not exist yet
-        tables = []
-
-    if "stories" in tables and "alembic_version" not in tables:
-        print("Existing database detected without alembic version. Stamping head.")
-        try:
-            alembic.command.stamp(alembic_cfg, "head")
-        except Exception as e:
-            print(f"Error stamping database: {e}")
-            # If stamp fails, we might be in trouble, but let's try to proceed
 
     print("Running alembic upgrade head...")
     try:
