@@ -1,0 +1,58 @@
+2026-02-16 01:40:18,274 - INFO - root - Logging configured. Level: DEBUG, File: test.log
+2026-02-16 01:40:18,275 - DEBUG - tzlocal - /etc/timezone found, contents:
+ Etc/UTC
+
+2026-02-16 01:40:18,276 - DEBUG - tzlocal - /etc/localtime found
+2026-02-16 01:40:18,277 - DEBUG - tzlocal - 2 found:
+ {'/etc/timezone': 'Etc/UTC', '/etc/localtime is a symlink to': 'Etc/UTC'}
+2026-02-16 01:40:38,371 - INFO - root - Logging configured. Level: DEBUG, File: test.log
+2026-02-16 01:40:39,195 - INFO - alembic.runtime.plugins - setup plugin alembic.autogenerate.schemas
+2026-02-16 01:40:39,196 - INFO - alembic.runtime.plugins - setup plugin alembic.autogenerate.tables
+2026-02-16 01:40:39,196 - INFO - alembic.runtime.plugins - setup plugin alembic.autogenerate.types
+2026-02-16 01:40:39,196 - INFO - alembic.runtime.plugins - setup plugin alembic.autogenerate.constraints
+2026-02-16 01:40:39,196 - INFO - alembic.runtime.plugins - setup plugin alembic.autogenerate.defaults
+2026-02-16 01:40:39,196 - INFO - alembic.runtime.plugins - setup plugin alembic.autogenerate.comments
+2026-02-16 01:40:39,248 - INFO - root - Starting test_logs
+2026-02-16 01:40:39,248 - DEBUG - tzlocal - /etc/timezone found, contents:
+ Etc/UTC
+
+2026-02-16 01:40:39,249 - DEBUG - tzlocal - /etc/localtime found
+2026-02-16 01:40:39,250 - DEBUG - tzlocal - 2 found:
+ {'/etc/timezone': 'Etc/UTC', '/etc/localtime is a symlink to': 'Etc/UTC'}
+2026-02-16 01:40:57,052 - INFO - root - Logging configured. Level: DEBUG, File: test.log
+2026-02-16 01:40:57,789 - INFO - alembic.runtime.plugins - setup plugin alembic.autogenerate.schemas
+2026-02-16 01:40:57,790 - INFO - alembic.runtime.plugins - setup plugin alembic.autogenerate.tables
+2026-02-16 01:40:57,790 - INFO - alembic.runtime.plugins - setup plugin alembic.autogenerate.types
+2026-02-16 01:40:57,790 - INFO - alembic.runtime.plugins - setup plugin alembic.autogenerate.constraints
+2026-02-16 01:40:57,790 - INFO - alembic.runtime.plugins - setup plugin alembic.autogenerate.defaults
+2026-02-16 01:40:57,790 - INFO - alembic.runtime.plugins - setup plugin alembic.autogenerate.comments
+2026-02-16 01:40:57,840 - INFO - root - Calling JobManager()...
+2026-02-16 01:40:57,841 - DEBUG - tzlocal - /etc/timezone found, contents:
+ Etc/UTC
+
+2026-02-16 01:40:57,841 - DEBUG - tzlocal - /etc/localtime found
+2026-02-16 01:40:57,842 - DEBUG - tzlocal - 2 found:
+ {'/etc/timezone': 'Etc/UTC', '/etc/localtime is a symlink to': 'Etc/UTC'}
+2026-02-16 01:41:54,748 - INFO - root - Logging configured. Level: DEBUG, File: test.log
+2026-02-16 01:41:55,461 - INFO - alembic.runtime.plugins - setup plugin alembic.autogenerate.schemas
+2026-02-16 01:41:55,461 - INFO - alembic.runtime.plugins - setup plugin alembic.autogenerate.tables
+2026-02-16 01:41:55,462 - INFO - alembic.runtime.plugins - setup plugin alembic.autogenerate.types
+2026-02-16 01:41:55,462 - INFO - alembic.runtime.plugins - setup plugin alembic.autogenerate.constraints
+2026-02-16 01:41:55,462 - INFO - alembic.runtime.plugins - setup plugin alembic.autogenerate.defaults
+2026-02-16 01:41:55,462 - INFO - alembic.runtime.plugins - setup plugin alembic.autogenerate.comments
+2026-02-16 01:41:55,516 - INFO - root - Calling JobManager()...
+2026-02-16 01:41:55,517 - DEBUG - tzlocal - /etc/timezone found, contents:
+ Etc/UTC
+
+2026-02-16 01:41:55,517 - DEBUG - tzlocal - /etc/localtime found
+2026-02-16 01:41:55,518 - DEBUG - tzlocal - 2 found:
+ {'/etc/timezone': 'Etc/UTC', '/etc/localtime is a symlink to': 'Etc/UTC'}
+2026-02-16 01:41:55,529 - INFO - alembic.runtime.migration - Context impl SQLiteImpl.
+2026-02-16 01:41:55,529 - INFO - alembic.runtime.migration - Will assume non-transactional DDL.
+2026-02-16 01:41:55,551 - INFO - story_manager - Reloaded providers. 2 providers active.
+2026-02-16 01:41:55,551 - INFO - story_manager - StoryManager initialized and providers registered.
+2026-02-16 01:41:55,551 - INFO - root - Calling process_download_queue()...
+2026-02-16 01:41:55,551 - INFO - job_manager - Checking download queue for pending chapters...
+2026-02-16 01:41:55,555 - DEBUG - job_manager - No pending chapters found.
+2026-02-16 01:41:55,555 - INFO - job_manager - Download queue empty or processing stopped.
+2026-02-16 01:41:55,555 - INFO - root - Done.

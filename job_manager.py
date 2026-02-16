@@ -54,6 +54,8 @@ class JobManager:
             replace_existing=True
         )
         logger.info(f"Jobs updated: check_updates (every {update_interval}h), download_queue (every {download_interval}s)")
+        for job in self.scheduler.get_jobs():
+            logger.info(f"Scheduled job: {job}")
 
     def check_for_updates(self):
         """
@@ -82,7 +84,7 @@ class JobManager:
         """
         Downloads pending chapters until queue is empty.
         """
-        logger.info("Starting download queue processing...")
+        logger.info("Checking download queue for pending chapters...")
 
         while True:
             session = SessionLocal()
@@ -93,6 +95,7 @@ class JobManager:
 
                 if not chapter:
                     # No more chapters
+                    logger.debug("No pending chapters found.")
                     break
 
                 story = chapter.story
