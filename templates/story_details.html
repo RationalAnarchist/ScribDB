@@ -83,6 +83,12 @@
                             </svg>
                             Retry Failed
                         </button>
+                         <button onclick="openDeleteModal()" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition-colors flex items-center gap-2 shadow-md">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                            Delete Story
+                        </button>
                     </div>
                     <p id="action-msg" class="mt-2 text-yellow-500 font-medium h-6"></p>
                 </div>
@@ -145,10 +151,65 @@
             </table>
         </div>
     </div>
+
+    <!-- Delete Modal -->
+    <div id="delete-modal" class="fixed inset-0 bg-black bg-opacity-70 hidden items-center justify-center z-50">
+        <div class="bg-gray-800 p-6 rounded-lg shadow-xl w-full max-w-md border border-gray-700">
+            <h3 class="text-xl font-bold text-white mb-4">Delete Story?</h3>
+            <p class="text-gray-300 mb-6">Are you sure you want to delete <span class="font-semibold text-white">{{ story.title }}</span>? This action cannot be undone.</p>
+
+            <div class="flex items-center mb-8 bg-gray-900/50 p-3 rounded border border-gray-700">
+                <input type="checkbox" id="delete-content-check" class="w-5 h-5 text-red-600 bg-gray-700 border-gray-600 rounded focus:ring-red-500 cursor-pointer">
+                <label for="delete-content-check" class="ml-3 text-sm font-medium text-gray-300 cursor-pointer select-none">Also delete downloaded files and ebooks</label>
+            </div>
+
+            <div class="flex justify-end gap-3">
+                <button onclick="closeDeleteModal()" class="px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded transition-colors font-medium">Cancel</button>
+                <button onclick="confirmDelete({{ story.id }})" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded transition-colors font-medium flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                    Delete
+                </button>
+            </div>
+        </div>
+    </div>
 {% endblock %}
 
 {% block scripts %}
     <script>
+        function openDeleteModal() {
+            document.getElementById('delete-modal').classList.remove('hidden');
+            document.getElementById('delete-modal').classList.add('flex');
+        }
+
+        function closeDeleteModal() {
+            document.getElementById('delete-modal').classList.add('hidden');
+            document.getElementById('delete-modal').classList.remove('flex');
+        }
+
+        async function confirmDelete(storyId) {
+            const deleteContent = document.getElementById('delete-content-check').checked;
+
+            try {
+                const response = await fetch(`/api/story/${storyId}?delete_content=${deleteContent}`, {
+                    method: 'DELETE'
+                });
+
+                if (!response.ok) {
+                    const err = await response.json();
+                    throw new Error(err.detail || 'Delete failed');
+                }
+
+                // Redirect to home
+                window.location.href = '/';
+
+            } catch (err) {
+                alert('Error deleting story: ' + err.message);
+                closeDeleteModal();
+            }
+        }
+
         async function updateProfile(storyId, profileId) {
             try {
                 const response = await fetch(`/api/story/${storyId}/set_profile`, {
