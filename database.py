@@ -50,6 +50,7 @@ class Chapter(Base):
     volume_number = Column(Integer, default=1)
     index = Column(Integer, nullable=True)
     status = Column(String, default='pending')
+    published_date = Column(DateTime, nullable=True)
 
     story = relationship("Story", back_populates="chapters")
 

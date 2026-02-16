@@ -2,6 +2,7 @@ from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 from typing import List, Dict
 import json
+from datetime import datetime
 
 from core_logic import BaseSource
 from polite_requester import PoliteRequester
@@ -96,12 +97,24 @@ class RoyalRoadSource(BaseSource):
         if table:
             for row in table.find_all('tr', class_='chapter-row'):
                 link = row.find('a', href=True)
+
+                published_date = None
+                time_tag = row.find('time')
+                if time_tag and time_tag.has_attr('datetime'):
+                    try:
+                        dt_str = time_tag['datetime']
+                        # Handle potential 'Z' or offset if simple fromisoformat doesn't work (Python 3.11+ handles Z usually)
+                        published_date = datetime.fromisoformat(dt_str.replace('Z', '+00:00'))
+                    except Exception:
+                        pass
+
                 if link:
                     title = link.get_text(strip=True)
                     chapter_url = urljoin(self.BASE_URL, link['href'])
                     chapters.append({
                         'title': title,
-                        'url': chapter_url
+                        'url': chapter_url,
+                        'published_date': published_date
                     })
         return chapters
 

@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block title %}Calendar - Scrollarr{% endblock %}
+
+{% block head %}
+<script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js'></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    var calendarEl = document.getElementById('calendar');
+    var calendar = new FullCalendar.Calendar(calendarEl, {
+      initialView: 'dayGridMonth',
+      themeSystem: 'standard',
+      headerToolbar: {
+        left: 'prev,next today',
+        center: 'title',
+        right: 'dayGridMonth,timeGridWeek,listWeek'
+      },
+      events: '/api/calendar',
+      eventClick: function(info) {
+        if (info.event.url) {
+          window.location.href = info.event.url;
+          info.jsEvent.preventDefault(); // prevents browser from following link in current tab.
+        }
+      }
+    });
+    calendar.render();
+  });
+</script>
+<style>
+    /* Dark mode adjustments for FullCalendar */
+    .fc {
+        color: #e5e5e5;
+    }
+    .fc-theme-standard .fc-scrollgrid {
+        border-color: #4a4a4a;
+    }
+    .fc-theme-standard td, .fc-theme-standard th {
+        border-color: #4a4a4a;
+    }
+    .fc-day-today {
+        background-color: #2d3748 !important;
+    }
+    .fc-button-primary {
+        background-color: #4a5568;
+        border-color: #4a5568;
+    }
+    .fc-button-primary:hover {
+        background-color: #2d3748;
+        border-color: #2d3748;
+    }
+    .fc-button-active {
+        background-color: #1a202c !important;
+        border-color: #1a202c !important;
+    }
+    .fc-list-event:hover td {
+        background-color: #2d3748 !important;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 h-full flex flex-col">
+    <div class="mb-8 flex-shrink-0">
+        <h1 class="text-3xl font-bold text-white mb-2">Release Calendar</h1>
+        <p class="text-gray-400">View past releases and predicted future chapters.</p>
+    </div>
+
+    <div class="bg-gray-800 rounded-lg shadow-lg p-6 flex-1 overflow-auto">
+        <div id='calendar' class="h-full"></div>
+    </div>
+</div>
+{% endblock %}

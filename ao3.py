@@ -2,6 +2,7 @@ from bs4 import BeautifulSoup
 from urllib.parse import urljoin, quote
 from typing import List, Dict, Optional
 import re
+from datetime import datetime
 
 from core_logic import BaseSource
 from polite_requester import PoliteRequester
@@ -116,13 +117,26 @@ class AO3Source(BaseSource):
         if chapter_list:
             for li in chapter_list:
                 link = li.find('a', href=True)
+
+                published_date = None
+                date_span = li.find('span', class_='datetime')
+                if date_span:
+                    text = date_span.get_text(strip=True)
+                    # format usually (YYYY-MM-DD)
+                    text = text.strip("()")
+                    try:
+                        published_date = datetime.strptime(text, "%Y-%m-%d")
+                    except Exception:
+                        pass
+
                 if link:
                     title = link.get_text(strip=True)
                     chapter_url = urljoin(self.BASE_URL, link['href'])
 
                     chapters.append({
                         'title': title,
-                        'url': chapter_url
+                        'url': chapter_url,
+                        'published_date': published_date
                     })
 
         if not chapters:
