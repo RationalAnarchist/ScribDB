@@ -7,5 +7,7 @@
     "worker_sleep_min": 30.0,
     "worker_sleep_max": 60.0,
     "database_url": "sqlite:///library.db",
-    "log_level": "DEBUG"
+    "log_level": "DEBUG",
+    "library_path": "library",
+    "filename_pattern": "{Title} - Vol {Volume}"
 }

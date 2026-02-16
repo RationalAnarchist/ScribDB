@@ -52,12 +52,12 @@ These features bring Scrollarr closer to the expected functionality of Sonarr/Ra
         -   ~~Create a `Profile` model (e.g., "Kindle", "Kobo", "Tablet").~~
         -   ~~Settings for: Font size, margins, cover style, output format (EPUB is default, maybe add PDF/MOBI conversion tools).~~
         -   ~~Assign a profile to a story.~~
-9.  **Library Management & File Organization**
-    -   **Feature:** Better file naming and organization.
-    -   **Implementation:**
-        -   Allow customizable renaming patterns (e.g., `{Author} - {Title}/{Title} - {Chapter Index} - {Chapter Title}.epub`).
-        -   Move files to a final "Library" directory (separate from "Downloads").
-        -   Handle "Volumes" or "Seasons" more explicitly in the UI.
+9.  ~~**Library Management & File Organization**~~
+    -   ~~**Feature:** Better file naming and organization.~~
+    -   ~~**Implementation:**~~
+        -   ~~Allow customizable renaming patterns (e.g., `{Author} - {Title}/{Title} - {Chapter Index} - {Chapter Title}.epub`).~~
+        -   ~~Move files to a final "Library" directory (separate from "Downloads").~~
+        -   ~~Handle "Volumes" or "Seasons" more explicitly in the UI.~~
 10. **Notifications**
     -   **Feature:** Alert users on events.
     -   **Implementation:**

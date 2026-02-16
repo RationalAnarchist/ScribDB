@@ -84,6 +84,7 @@ class EbookBuilder:
         """
         # Local import to avoid module-level side effects
         from database import SessionLocal, Story, Chapter
+        from config import config_manager
 
         session = SessionLocal()
         try:
@@ -116,9 +117,30 @@ class EbookBuilder:
 
             book_title = f"{story.title} - Vol {volume_number}"
 
-            # Sanitize filename
-            safe_title = "".join([c for c in book_title if c.isalnum() or c in (' ', '-', '_')]).strip().replace(' ', '_')
-            output_path = f"{safe_title}.epub"
+            # Get library path and pattern
+            library_path = config_manager.get('library_path', 'library')
+            filename_pattern = config_manager.get('filename_pattern', '{Title} - Vol {Volume}')
+
+            # Create filename
+            # Replace placeholders
+            filename = filename_pattern.replace('{Title}', story.title)\
+                                       .replace('{Author}', story.author)\
+                                       .replace('{Volume}', str(volume_number))
+
+            # Sanitize filename (basic sanitization)
+            safe_filename = "".join([c for c in filename if c.isalnum() or c in (' ', '-', '_', '.')]).strip()
+            # Ensure extension
+            if not safe_filename.lower().endswith('.epub'):
+                safe_filename += ".epub"
+
+            # Ensure directory exists
+            if not os.path.exists(library_path):
+                try:
+                    os.makedirs(library_path)
+                except Exception as e:
+                    print(f"Error creating library directory: {e}")
+
+            output_path = os.path.join(library_path, safe_filename)
 
             # Get profile CSS
             profile_css = None

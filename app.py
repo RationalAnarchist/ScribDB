@@ -63,6 +63,8 @@ class SettingsRequest(BaseModel):
     worker_sleep_max: float = 60.0
     database_url: str = "sqlite:///library.db"
     log_level: str = "INFO"
+    library_path: str = "library"
+    filename_pattern: str = "{Title} - Vol {Volume}"
 
 class ProfileCreate(BaseModel):
     name: str
@@ -254,6 +256,8 @@ async def update_settings(settings: SettingsRequest):
         config_manager.set("worker_sleep_max", settings.worker_sleep_max)
         config_manager.set("database_url", settings.database_url)
         config_manager.set("log_level", settings.log_level)
+        config_manager.set("library_path", settings.library_path)
+        config_manager.set("filename_pattern", settings.filename_pattern)
 
         # Update jobs with new settings
         if job_manager:
