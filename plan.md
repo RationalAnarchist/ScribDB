@@ -61,7 +61,7 @@ These features bring Scrollarr closer to the expected functionality of Sonarr/Ra
 10. **Notifications**
     -   **Feature:** Alert users on events.
     -   **Implementation:**
-        -   Support for Webhooks (Discord, Slack, Gotify).
+        -   Support for Webhooks (Discord, Slack, Gotify), ability to email user and to include compiled ebooks with the email (for single chapter or work so far)
         -   Triggers: "On Download", "On Upgrade", "On Failure".
 
 ## Phase 4: Polish & Ecosystem (Long Term)
