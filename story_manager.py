@@ -1,6 +1,7 @@
 import os
 import logging
-from typing import Optional
+import json
+from typing import Optional, List, Dict
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy.sql import func
 from core_logic import SourceManager
@@ -33,7 +34,7 @@ class StoryManager:
         session = SessionLocal()
         try:
             enabled_sources = session.query(Source).filter(Source.is_enabled == True).all()
-            enabled_keys = {s.key for s in enabled_sources}
+            enabled_map = {s.key: s for s in enabled_sources}
 
             # Map keys to provider classes
             providers_map = {
@@ -43,8 +44,21 @@ class StoryManager:
 
             registered_count = 0
             for key, provider_class in providers_map.items():
-                if key in enabled_keys:
-                    self.source_manager.register_provider(provider_class())
+                if key in enabled_map:
+                    source_record = enabled_map[key]
+                    provider_instance = provider_class()
+                    # Inject key for identification
+                    provider_instance.key = key
+
+                    # Apply config
+                    if source_record.config:
+                        try:
+                            config_data = json.loads(source_record.config)
+                            provider_instance.set_config(config_data)
+                        except Exception as e:
+                            logger.error(f"Failed to load config for {key}: {e}")
+
+                    self.source_manager.register_provider(provider_instance)
                     registered_count += 1
 
             logger.info(f"Reloaded providers. {registered_count} providers active.")
@@ -52,6 +66,26 @@ class StoryManager:
             logger.error(f"Error reloading providers: {e}")
         finally:
             session.close()
+
+    def search(self, query: str, provider_key: Optional[str] = None) -> List[Dict]:
+        """
+        Searches for stories using enabled providers.
+        """
+        results = []
+        for provider in self.source_manager.providers:
+            # Check if this provider matches the requested key
+            p_key = getattr(provider, 'key', None)
+            if provider_key and p_key and p_key != provider_key:
+                continue
+
+            try:
+                # Add provider name to results if not present (handled by provider usually)
+                provider_results = provider.search(query)
+                results.extend(provider_results)
+            except Exception as e:
+                logger.error(f"Search failed for provider {p_key}: {e}")
+
+        return results
 
     def add_story(self, url: str) -> int:
         """

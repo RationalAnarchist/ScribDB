@@ -158,3 +158,42 @@ class RoyalRoadSource(BaseSource):
             return content_div.decode_contents()
 
         return ""
+
+    def search(self, query: str) -> List[Dict]:
+        url = f"{self.BASE_URL}/fictions/search?title={query}"
+        response = self.requester.get(url)
+        soup = BeautifulSoup(response.text, 'html.parser')
+
+        results = []
+        for item in soup.select('.fiction-list-item'):
+            title_tag = item.select_one('.fiction-title a')
+            if not title_tag:
+                continue
+
+            title = title_tag.get_text(strip=True)
+            story_url = urljoin(self.BASE_URL, title_tag['href'])
+
+            author = "Unknown"
+            # Look for author link
+            for a in item.select('a'):
+                if a.get('href', '').startswith('/profile/'):
+                    author = a.get_text(strip=True)
+                    break
+
+            cover_url = None
+            img = item.select_one('img')
+            if img and img.has_attr('src'):
+                src = img['src']
+                if src.startswith('/'):
+                    src = urljoin(self.BASE_URL, src)
+                cover_url = src
+
+            results.append({
+                'title': title,
+                'url': story_url,
+                'author': author,
+                'cover_url': cover_url,
+                'provider': 'Royal Road'
+            })
+
+        return results

@@ -1,5 +1,5 @@
 from bs4 import BeautifulSoup
-from urllib.parse import urljoin
+from urllib.parse import urljoin, quote
 from typing import List, Dict, Optional
 import re
 
@@ -183,3 +183,72 @@ class AO3Source(BaseSource):
             return content_div.decode_contents()
 
         return ""
+
+    def set_config(self, config: Dict):
+        if not config:
+            return
+
+        # Look for cookies
+        cookies = {}
+        # Try 'cookies' key first (JSON object)
+        c = config.get('cookies')
+        if c:
+            if isinstance(c, dict):
+                cookies = c
+            elif isinstance(c, str):
+                # Try to parse string "key=value; key2=value2"
+                try:
+                    for pair in c.split(';'):
+                        if '=' in pair:
+                            k, v = pair.strip().split('=', 1)
+                            cookies[k] = v
+                except Exception:
+                    pass
+
+        if cookies:
+            self.requester.set_cookies(cookies)
+
+    def search(self, query: str) -> List[Dict]:
+        encoded_query = quote(query)
+        url = f"{self.BASE_URL}/works/search?work_search[query]={encoded_query}"
+
+        try:
+            response = self.requester.get(url)
+        except Exception as e:
+            # Check for Cloudflare/Auth errors
+            if hasattr(e, 'response') and e.response is not None:
+                if e.response.status_code in [403, 503]:
+                    print(f"AO3 Search blocked (Status {e.response.status_code}). Check cookies.")
+            return []
+
+        soup = BeautifulSoup(response.text, 'html.parser')
+
+        results = []
+        for item in soup.select('li.work.blurb'):
+            # Title
+            title_tag = item.select_one('h4.heading a[href^="/works/"]')
+            if not title_tag:
+                continue
+
+            title = title_tag.get_text(strip=True)
+            story_url = urljoin(self.BASE_URL, title_tag['href'])
+
+            # Author
+            author_tag = item.select_one('h4.heading a[rel="author"]')
+            author = "Anonymous"
+            if author_tag:
+                 author = author_tag.get_text(strip=True)
+            else:
+                 h4 = item.select_one('h4.heading')
+                 if h4 and "Anonymous" in h4.get_text():
+                     author = "Anonymous"
+
+            results.append({
+                'title': title,
+                'url': story_url,
+                'author': author,
+                'cover_url': None,
+                'provider': 'Archive of Our Own'
+            })
+
+        return results

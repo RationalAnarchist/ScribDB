@@ -77,6 +77,7 @@ class Source(Base):
     name = Column(String, unique=True, nullable=False)
     key = Column(String, unique=True, nullable=False)
     is_enabled = Column(Boolean, default=True)
+    config = Column(String, nullable=True)
 
     def __repr__(self):
         return f"<Source(name='{self.name}', enabled={self.is_enabled})>"
