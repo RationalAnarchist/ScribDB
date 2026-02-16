@@ -9,6 +9,7 @@ from royalroad import RoyalRoadSource
 from ao3 import AO3Source
 from database import Story, Chapter, Source, SessionLocal, init_db, engine
 from config import config_manager
+from notifications import NotificationManager
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -23,6 +24,7 @@ class StoryManager:
         init_db()
 
         self.source_manager = SourceManager()
+        self.notification_manager = NotificationManager()
         self.reload_providers()
         logger.info("StoryManager initialized and providers registered.")
 
@@ -306,6 +308,13 @@ class StoryManager:
                     if new_chapters_count > 0:
                         story.last_updated = func.now()
                         logger.info(f"Found {new_chapters_count} new chapters for '{story.title}'")
+
+                        # Notify
+                        self.notification_manager.dispatch('on_new_chapters', {
+                            'story_title': story.title,
+                            'new_chapters_count': new_chapters_count,
+                            'story_id': story.id
+                        })
                     else:
                         logger.info(f"No new chapters for '{story.title}'")
 
@@ -471,6 +480,13 @@ class StoryManager:
             if new_chapters_count > 0:
                 story.last_updated = func.now()
                 logger.info(f"Found {new_chapters_count} new chapters for '{story.title}'")
+
+                # Notify
+                self.notification_manager.dispatch('on_new_chapters', {
+                    'story_title': story.title,
+                    'new_chapters_count': new_chapters_count,
+                    'story_id': story.id
+                })
             else:
                 logger.info(f"No new chapters for '{story.title}'")
 

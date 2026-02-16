@@ -7,12 +7,35 @@ import unittest
 import shutil
 from unittest.mock import MagicMock
 from story_manager import StoryManager
-from database import Story, Chapter, SessionLocal, Base, engine
+from database import Story, Chapter, Base
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+import database
+from unittest.mock import patch
 
 class TestStoryManager(unittest.TestCase):
     def setUp(self):
+        # Create new engine/session pointing to test DB
+        self.test_db_url = 'sqlite:///test_library.db'
+        self.test_engine = create_engine(self.test_db_url, connect_args={"check_same_thread": False})
+        self.TestSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=self.test_engine)
+
+        # Patch database module (for modules that import it dynamically or use database.SessionLocal)
+        self.original_engine = database.engine
+        self.original_sessionlocal = database.SessionLocal
+        self.original_db_url = database.DB_URL
+        database.engine = self.test_engine
+        database.SessionLocal = self.TestSessionLocal
+        database.DB_URL = self.test_db_url
+
+        # Patch StoryManager and Notifications imports
+        self.sm_session_patcher = patch('story_manager.SessionLocal', self.TestSessionLocal)
+        self.sm_session_patcher.start()
+
+        self.notif_session_patcher = patch('notifications.SessionLocal', self.TestSessionLocal)
+        self.notif_session_patcher.start()
+
         # Ensure we start with a clean state
-        engine.dispose()
         if os.path.exists("test_library.db"):
             os.remove("test_library.db")
 
@@ -39,10 +62,22 @@ class TestStoryManager(unittest.TestCase):
 
     def tearDown(self):
         # Clean up database tables
-        Base.metadata.drop_all(bind=engine)
+        try:
+            Base.metadata.drop_all(bind=self.test_engine)
+        except:
+            pass
 
-        # Dispose engine connections
-        engine.dispose()
+        # Stop patches
+        self.sm_session_patcher.stop()
+        self.notif_session_patcher.stop()
+
+        # Restore database module
+        database.engine = self.original_engine
+        database.SessionLocal = self.original_sessionlocal
+        database.DB_URL = self.original_db_url
+
+        # Dispose test engine
+        self.test_engine.dispose()
 
         # Clean up files
         if os.path.exists("saved_stories"):
@@ -61,7 +96,7 @@ class TestStoryManager(unittest.TestCase):
         self.assertIsNotNone(story_id)
 
         # Verify DB
-        session = SessionLocal()
+        session = database.SessionLocal()
         story = session.query(Story).filter(Story.id == story_id).first()
         self.assertIsNotNone(story)
         self.assertEqual(story.title, 'Test Story')
@@ -86,7 +121,7 @@ class TestStoryManager(unittest.TestCase):
         self.manager.download_missing_chapters(story_id)
 
         # Verify DB updates
-        session = SessionLocal()
+        session = database.SessionLocal()
         chapters = session.query(Chapter).filter(Chapter.story_id == story_id).all()
         for chapter in chapters:
             self.assertTrue(chapter.is_downloaded)
@@ -148,7 +183,7 @@ class TestStoryManager(unittest.TestCase):
         story_id = self.manager.add_story("http://example.com/story")
 
         # Verify initial state
-        session = SessionLocal()
+        session = database.SessionLocal()
         story = session.query(Story).filter(Story.id == story_id).first()
         self.assertEqual(len(story.chapters), 2)
         session.close()
@@ -164,7 +199,7 @@ class TestStoryManager(unittest.TestCase):
         self.manager.update_library()
 
         # 4. Verify new chapter is added
-        session = SessionLocal()
+        session = database.SessionLocal()
         story = session.query(Story).filter(Story.id == story_id).first()
         self.assertEqual(len(story.chapters), 3)
 
@@ -194,7 +229,7 @@ class TestStoryManager(unittest.TestCase):
         # 4. Verify
         self.assertEqual(new_count, 1)
 
-        session = SessionLocal()
+        session = database.SessionLocal()
         chapters = session.query(Chapter).filter(Chapter.story_id == story_id).all()
         self.assertEqual(len(chapters), 3)
         session.close()
@@ -204,7 +239,7 @@ class TestStoryManager(unittest.TestCase):
         story_id = self.manager.add_story("http://example.com/story")
 
         # 2. Mark a chapter as failed
-        session = SessionLocal()
+        session = database.SessionLocal()
         chapter = session.query(Chapter).filter(Chapter.story_id == story_id, Chapter.index == 1).first()
         chapter.status = 'failed'
         session.commit()
@@ -216,7 +251,7 @@ class TestStoryManager(unittest.TestCase):
         # 4. Verify
         self.assertEqual(count, 1)
 
-        session = SessionLocal()
+        session = database.SessionLocal()
         chapter = session.query(Chapter).filter(Chapter.story_id == story_id, Chapter.index == 1).first()
         self.assertEqual(chapter.status, 'pending')
         session.close()
@@ -234,7 +269,7 @@ class TestStoryManager(unittest.TestCase):
         story_id = self.manager.add_story("http://example.com/story")
 
         # Verify initial state
-        session = SessionLocal()
+        session = database.SessionLocal()
         story = session.query(Story).filter(Story.id == story_id).first()
         self.assertEqual(story.description, '')
         session.close()
@@ -252,7 +287,7 @@ class TestStoryManager(unittest.TestCase):
         self.manager.fill_missing_metadata()
 
         # 4. Verify description is updated
-        session = SessionLocal()
+        session = database.SessionLocal()
         story = session.query(Story).filter(Story.id == story_id).first()
         self.assertEqual(story.description, 'New Description')
         self.assertEqual(story.tags, 'Tag1, Tag2')

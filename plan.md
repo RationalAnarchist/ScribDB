@@ -18,21 +18,9 @@ This document outlines the roadmap for evolving Scrollarr into a full-featured "
 ### Phase 3: Advanced Organization & Customization (Partial)
 - [x] Ebook Profiles
 - [x] Library Management (File naming, organization)
+- [x] Alert users via webhooks
 
 ## Active Roadmap
-
-### Phase 3: Advanced Organization (Completion)
-
-#### 1. Notifications System
-- **Goal:** Alert users via Webhooks (Discord/Slack) on events.
-- **Tasks:**
-    1.  Create `notification_manager.py` with `Notifier` class.
-    2.  Add `discord_webhook_url` to `config.json` and `Settings` model.
-    3.  Implement `send_notification(message, type)` method.
-    4.  Integrate with `JobManager`:
-        -   Alert on "Download Started/Finished/Failed".
-        -   Alert on "New Chapters Found".
-    5.  Add UI settings for Webhook URL and a "Test" button.
 
 ### Phase 4: Polish & Ecosystem
 

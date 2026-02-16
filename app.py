@@ -10,10 +10,11 @@ from sqlalchemy.orm import Session
 from sqlalchemy import desc
 from pydantic import BaseModel
 
-from database import SessionLocal, Story, Chapter, Source, DownloadHistory, EbookProfile
+from database import SessionLocal, Story, Chapter, Source, DownloadHistory, EbookProfile, NotificationSettings
 from story_manager import StoryManager
 from ebook_builder import EbookBuilder
 from job_manager import JobManager
+from notifications import NotificationManager
 from config import config_manager
 from logger import setup_logging
 
@@ -91,6 +92,45 @@ class ProfileResponse(BaseModel):
     class Config:
         from_attributes = True
 
+class NotificationResponse(BaseModel):
+    id: int
+    name: str
+    kind: str
+    target: str
+    events: str
+    attach_file: bool
+    enabled: bool
+
+    class Config:
+        from_attributes = True
+
+class NotificationCreate(BaseModel):
+    name: str
+    kind: str
+    target: str
+    events: str = ''
+    attach_file: bool = False
+    enabled: bool = True
+
+class NotificationUpdate(BaseModel):
+    name: Optional[str] = None
+    kind: Optional[str] = None
+    target: Optional[str] = None
+    events: Optional[str] = None
+    attach_file: Optional[bool] = None
+    enabled: Optional[bool] = None
+
+class SmtpSettingsRequest(BaseModel):
+    smtp_host: str
+    smtp_port: int
+    smtp_user: Optional[str] = None
+    smtp_password: Optional[str] = None
+    smtp_from_email: Optional[str] = None
+
+class TestNotificationRequest(BaseModel):
+    target: str
+    kind: str
+
 # JobManager instance
 job_manager = JobManager()
 
@@ -145,6 +185,11 @@ async def settings_page(request: Request):
 async def sources_page(request: Request):
     """Render the sources page."""
     return templates.TemplateResponse("sources.html", {"request": request})
+
+@app.get("/notifications", response_class=HTMLResponse)
+async def notifications_page(request: Request):
+    """Render the notifications page."""
+    return templates.TemplateResponse("notifications.html", {"request": request})
 
 @app.get("/profiles", response_class=HTMLResponse)
 async def profiles_page(request: Request):
@@ -497,3 +542,104 @@ async def set_story_profile(story_id: int, request: SetProfileRequest, db: Sessi
     story.profile_id = request.profile_id
     db.commit()
     return {"message": f"Profile set to {profile.name}"}
+
+# Notification API Endpoints
+
+@app.get("/api/notifications/settings")
+async def get_notification_settings(db: Session = Depends(get_db)):
+    """Get all notification settings and SMTP config."""
+    targets = db.query(NotificationSettings).all()
+
+    smtp_config = {
+        "smtp_host": config_manager.get("smtp_host", ""),
+        "smtp_port": int(config_manager.get("smtp_port", 587)),
+        "smtp_user": config_manager.get("smtp_user", ""),
+        "smtp_password": config_manager.get("smtp_password", ""),
+        "smtp_from_email": config_manager.get("smtp_from_email", "")
+    }
+
+    return {
+        "targets": [NotificationResponse.model_validate(t) for t in targets],
+        "smtp": smtp_config
+    }
+
+@app.post("/api/notifications/smtp")
+async def update_smtp_settings(settings: SmtpSettingsRequest):
+    """Update SMTP configuration."""
+    try:
+        config_manager.set("smtp_host", settings.smtp_host)
+        config_manager.set("smtp_port", settings.smtp_port)
+        config_manager.set("smtp_user", settings.smtp_user)
+        config_manager.set("smtp_password", settings.smtp_password)
+        config_manager.set("smtp_from_email", settings.smtp_from_email)
+        return {"message": "SMTP settings updated"}
+    except Exception as e:
+        logger.error(f"Error updating SMTP settings: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update SMTP settings")
+
+@app.post("/api/notifications/targets", response_model=NotificationResponse)
+async def create_notification_target(target: NotificationCreate, db: Session = Depends(get_db)):
+    """Create a new notification target."""
+    new_target = NotificationSettings(
+        name=target.name,
+        kind=target.kind,
+        target=target.target,
+        events=target.events,
+        attach_file=target.attach_file,
+        enabled=target.enabled
+    )
+    db.add(new_target)
+    db.commit()
+    db.refresh(new_target)
+    return new_target
+
+@app.put("/api/notifications/targets/{target_id}", response_model=NotificationResponse)
+async def update_notification_target(target_id: int, target: NotificationUpdate, db: Session = Depends(get_db)):
+    """Update a notification target."""
+    db_target = db.query(NotificationSettings).filter(NotificationSettings.id == target_id).first()
+    if not db_target:
+        raise HTTPException(status_code=404, detail="Target not found")
+
+    if target.name is not None:
+        db_target.name = target.name
+    if target.kind is not None:
+        db_target.kind = target.kind
+    if target.target is not None:
+        db_target.target = target.target
+    if target.events is not None:
+        db_target.events = target.events
+    if target.attach_file is not None:
+        db_target.attach_file = target.attach_file
+    if target.enabled is not None:
+        db_target.enabled = target.enabled
+
+    db.commit()
+    return db_target
+
+@app.delete("/api/notifications/targets/{target_id}")
+async def delete_notification_target(target_id: int, db: Session = Depends(get_db)):
+    """Delete a notification target."""
+    db_target = db.query(NotificationSettings).filter(NotificationSettings.id == target_id).first()
+    if not db_target:
+        raise HTTPException(status_code=404, detail="Target not found")
+
+    db.delete(db_target)
+    db.commit()
+    return {"message": "Target deleted"}
+
+@app.post("/api/notifications/test")
+async def test_notification(request: TestNotificationRequest):
+    """Send a test notification."""
+    nm = NotificationManager()
+    try:
+        if request.kind == 'email':
+            nm.send_email(request.target, "Scrollarr Test", "This is a test notification from Scrollarr.")
+        elif request.kind == 'webhook':
+            nm.send_webhook(request.target, "This is a test notification from Scrollarr.", {"source": "test"})
+        else:
+            raise HTTPException(status_code=400, detail="Invalid kind")
+
+        return {"message": "Test notification sent"}
+    except Exception as e:
+        logger.error(f"Test notification failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

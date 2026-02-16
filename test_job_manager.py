@@ -32,11 +32,17 @@ class TestJobManager(unittest.TestCase):
         self.scheduler_patcher = patch('job_manager.BackgroundScheduler')
         self.scheduler_patcher.start()
 
+        # Patch NotificationManager
+        self.notification_manager_patcher = patch('job_manager.NotificationManager')
+        self.mock_notification_manager_class = self.notification_manager_patcher.start()
+        self.mock_notification_manager = self.mock_notification_manager_class.return_value
+
     def tearDown(self):
         self.session_patcher.stop()
         self.init_db_patcher.stop()
         self.config_patcher.stop()
         self.scheduler_patcher.stop()
+        self.notification_manager_patcher.stop()
         self.session.close()
         Base.metadata.drop_all(self.engine)
 
