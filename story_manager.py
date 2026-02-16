@@ -659,9 +659,12 @@ class StoryManager:
                      last_date = sorted_dates[-1]
                      now = datetime.now()
 
+                     # Start from the last known date
                      next_prediction = last_date + timedelta(seconds=avg)
 
-                     # Skip past dates
+                     # Find the next valid slot in the FUTURE
+                     # We keep adding the interval to the original cadence until we land in the future.
+                     # This preserves the rhythm (e.g. every 2 days) rather than resetting the clock to 'now'.
                      while next_prediction < now:
                          next_prediction += timedelta(seconds=avg)
 
