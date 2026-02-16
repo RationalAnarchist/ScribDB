@@ -8,6 +8,7 @@ from sqlalchemy.sql import func
 from core_logic import SourceManager
 from royalroad import RoyalRoadSource
 from ao3 import AO3Source
+from questionablequesting import QuestionableQuestingSource
 from database import Story, Chapter, Source, SessionLocal, init_db, engine
 from config import config_manager
 from notifications import NotificationManager
@@ -42,7 +43,8 @@ class StoryManager:
             # Map keys to provider classes
             providers_map = {
                 'royalroad': RoyalRoadSource,
-                'ao3': AO3Source
+                'ao3': AO3Source,
+                'questionablequesting': QuestionableQuestingSource
             }
 
             registered_count = 0
