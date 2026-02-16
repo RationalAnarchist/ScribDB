@@ -2,7 +2,7 @@ import os
 import logging
 import json
 from typing import Optional, List, Dict
-from datetime import timedelta
+from datetime import datetime, timedelta
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy.sql import func
 from core_logic import SourceManager
@@ -657,15 +657,23 @@ class StoryManager:
 
                      # Predict next 5 chapters
                      last_date = sorted_dates[-1]
-                     for i in range(1, 6):
-                        next_date = last_date + timedelta(seconds=avg * i)
+                     now = datetime.now()
+
+                     next_prediction = last_date + timedelta(seconds=avg)
+
+                     # Skip past dates
+                     while next_prediction < now:
+                         next_prediction += timedelta(seconds=avg)
+
+                     for i in range(5):
                         events.append({
                             'title': f"{story.title} - Predicted",
-                            'start': next_date.isoformat(),
+                            'start': next_prediction.isoformat(),
                             'color': '#28a745', # Green
                             'url': f"/story/{story.id}",
                             'allDay': True
                         })
+                        next_prediction += timedelta(seconds=avg)
 
             return events
         finally:
