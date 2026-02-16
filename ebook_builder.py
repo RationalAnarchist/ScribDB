@@ -6,7 +6,7 @@ class EbookBuilder:
     def __init__(self):
         pass
 
-    def make_epub(self, title: str, author: str, chapters: List[Dict[str, str]], output_path: str, cover_path: Optional[str] = None):
+    def make_epub(self, title: str, author: str, chapters: List[Dict[str, str]], output_path: str, cover_path: Optional[str] = None, css: Optional[str] = None):
         """
         Generates an EPUB file from story metadata and chapter content.
 
@@ -15,6 +15,7 @@ class EbookBuilder:
         :param chapters: A list of dictionaries, each containing 'title' and 'content' keys.
         :param output_path: The path where the generated EPUB file will be saved.
         :param cover_path: (Optional) Path to the cover image file.
+        :param css: (Optional) Custom CSS string.
         """
         book = epub.EpubBook()
 
@@ -58,7 +59,7 @@ class EbookBuilder:
         book.add_item(epub.EpubNav())
 
         # Define CSS style
-        style = 'body { font-family: Times, Times New Roman, serif; }'
+        style = css if css else 'body { font-family: Times, Times New Roman, serif; }'
         nav_css = epub.EpubItem(uid="style_nav", file_name="style/nav.css", media_type="text/css", content=style)
         book.add_item(nav_css)
 
@@ -119,7 +120,12 @@ class EbookBuilder:
             safe_title = "".join([c for c in book_title if c.isalnum() or c in (' ', '-', '_')]).strip().replace(' ', '_')
             output_path = f"{safe_title}.epub"
 
-            self.make_epub(book_title, story.author, epub_chapters, output_path, story.cover_path)
+            # Get profile CSS
+            profile_css = None
+            if story.profile and story.profile.css:
+                 profile_css = story.profile.css
+
+            self.make_epub(book_title, story.author, epub_chapters, output_path, story.cover_path, css=profile_css)
 
             return output_path
 

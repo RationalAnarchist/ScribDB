@@ -46,12 +46,12 @@ These features bring Scrollarr closer to the expected functionality of Sonarr/Ra
 
 ## Phase 3: Advanced Organization & Customization (Medium Term)
 
-8.  **Ebook Profiles (The "Quality Profile")**
-    -   **Feature:** Customize the output format and style.
-    -   **Implementation:**
-        -   Create a `Profile` model (e.g., "Kindle", "Kobo", "Tablet").
-        -   Settings for: Font size, margins, cover style, output format (EPUB is default, maybe add PDF/MOBI conversion tools).
-        -   Assign a profile to a story.
+8.  ~~**Ebook Profiles (The "Quality Profile")**~~
+    -   ~~**Feature:** Customize the output format and style.~~
+    -   ~~**Implementation:**~~
+        -   ~~Create a `Profile` model (e.g., "Kindle", "Kobo", "Tablet").~~
+        -   ~~Settings for: Font size, margins, cover style, output format (EPUB is default, maybe add PDF/MOBI conversion tools).~~
+        -   ~~Assign a profile to a story.~~
 9.  **Library Management & File Organization**
     -   **Feature:** Better file naming and organization.
     -   **Implementation:**

@@ -20,7 +20,7 @@
                 <p class="text-xl text-blue-400 mb-6 font-medium">{{ story.author }}</p>
 
                 <!-- Metadata Grid -->
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 text-sm">
+                <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6 text-sm">
                     <div>
                         <span class="block text-gray-400 uppercase text-xs font-semibold">Status</span>
                         <span class="text-white">{{ story.publication_status or 'Unknown' }}</span>
@@ -36,6 +36,14 @@
                     <div>
                         <span class="block text-gray-400 uppercase text-xs font-semibold">Source</span>
                          <a href="{{ story.source_url }}" target="_blank" class="text-blue-400 hover:text-blue-300 truncate block">Link</a>
+                    </div>
+                    <div>
+                         <span class="block text-gray-400 uppercase text-xs font-semibold">Profile</span>
+                         <select id="profile-select" onchange="updateProfile({{ story.id }}, this.value)" class="bg-gray-700 text-white text-xs rounded p-1 border border-gray-600 focus:outline-none focus:border-blue-500 w-full">
+                             {% for p in profiles %}
+                             <option value="{{ p.id }}" {% if story.profile_id == p.id %}selected{% endif %}>{{ p.name }}</option>
+                             {% endfor %}
+                         </select>
                     </div>
                 </div>
 
@@ -141,6 +149,27 @@
 
 {% block scripts %}
     <script>
+        async function updateProfile(storyId, profileId) {
+            try {
+                const response = await fetch(`/api/story/${storyId}/set_profile`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ profile_id: parseInt(profileId) })
+                });
+
+                if (!response.ok) {
+                    const err = await response.json();
+                    throw new Error(err.detail || 'Failed to update profile');
+                }
+
+                // Optional: Feedback
+                console.log("Profile updated");
+            } catch (err) {
+                console.error(err);
+                alert('Error updating profile');
+            }
+        }
+
         async function triggerUpdate(btn, storyId) {
             const originalText = btn.innerHTML;
             btn.disabled = true;

@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import desc
 from pydantic import BaseModel
 
-from database import SessionLocal, Story, Chapter, Source, DownloadHistory
+from database import SessionLocal, Story, Chapter, Source, DownloadHistory, EbookProfile
 from story_manager import StoryManager
 from ebook_builder import EbookBuilder
 from job_manager import JobManager
@@ -63,6 +63,31 @@ class SettingsRequest(BaseModel):
     worker_sleep_max: float = 60.0
     database_url: str = "sqlite:///library.db"
     log_level: str = "INFO"
+
+class ProfileCreate(BaseModel):
+    name: str
+    description: Optional[str] = None
+    css: Optional[str] = None
+    output_format: str = 'epub'
+
+class ProfileUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    css: Optional[str] = None
+    output_format: Optional[str] = None
+
+class SetProfileRequest(BaseModel):
+    profile_id: int
+
+class ProfileResponse(BaseModel):
+    id: int
+    name: str
+    description: Optional[str] = None
+    css: Optional[str] = None
+    output_format: str
+
+    class Config:
+        from_attributes = True
 
 # JobManager instance
 job_manager = JobManager()
@@ -118,6 +143,11 @@ async def settings_page(request: Request):
 async def sources_page(request: Request):
     """Render the sources page."""
     return templates.TemplateResponse("sources.html", {"request": request})
+
+@app.get("/profiles", response_class=HTMLResponse)
+async def profiles_page(request: Request):
+    """Render the profiles page."""
+    return templates.TemplateResponse("profiles.html", {"request": request})
 
 @app.get("/search", response_class=HTMLResponse)
 async def search_page(request: Request):
@@ -349,11 +379,15 @@ async def story_details(story_id: int, request: Request, db: Session = Depends(g
     if not volumes and chapters:
         volumes = [1]
 
+    # Get all profiles
+    profiles = db.query(EbookProfile).all()
+
     return templates.TemplateResponse("story_details.html", {
         "request": request,
         "story": story,
         "chapters": chapters,
-        "volumes": volumes
+        "volumes": volumes,
+        "profiles": profiles
     })
 
 @app.post("/api/compile/{story_id}/{volume_number}")
@@ -374,3 +408,88 @@ async def compile_volume(story_id: int, volume_number: int):
     except Exception as e:
         logger.error(f"Compile error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/profiles", response_model=List[ProfileResponse])
+async def get_profiles(db: Session = Depends(get_db)):
+    """Get all profiles."""
+    profiles = db.query(EbookProfile).all()
+    return profiles
+
+@app.post("/api/profiles", response_model=ProfileResponse)
+async def create_profile(profile: ProfileCreate, db: Session = Depends(get_db)):
+    """Create a new profile."""
+    # Check if name exists
+    existing = db.query(EbookProfile).filter(EbookProfile.name == profile.name).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Profile with this name already exists")
+
+    new_profile = EbookProfile(
+        name=profile.name,
+        description=profile.description,
+        css=profile.css,
+        output_format=profile.output_format
+    )
+    db.add(new_profile)
+    db.commit()
+    db.refresh(new_profile)
+    return new_profile
+
+@app.put("/api/profiles/{profile_id}", response_model=ProfileResponse)
+async def update_profile(profile_id: int, profile: ProfileUpdate, db: Session = Depends(get_db)):
+    """Update a profile."""
+    db_profile = db.query(EbookProfile).filter(EbookProfile.id == profile_id).first()
+    if not db_profile:
+        raise HTTPException(status_code=404, detail="Profile not found")
+
+    if profile.name:
+        # Check uniqueness if name changed
+        if profile.name != db_profile.name:
+             existing = db.query(EbookProfile).filter(EbookProfile.name == profile.name).first()
+             if existing:
+                 raise HTTPException(status_code=400, detail="Profile with this name already exists")
+        db_profile.name = profile.name
+
+    if profile.description is not None:
+        db_profile.description = profile.description
+    if profile.css is not None:
+        db_profile.css = profile.css
+    if profile.output_format is not None:
+        db_profile.output_format = profile.output_format
+
+    db.commit()
+    return db_profile
+
+@app.delete("/api/profiles/{profile_id}")
+async def delete_profile(profile_id: int, db: Session = Depends(get_db)):
+    """Delete a profile."""
+    # Prevent deleting default profile (id=1)
+    if profile_id == 1:
+        raise HTTPException(status_code=400, detail="Cannot delete the default profile")
+
+    db_profile = db.query(EbookProfile).filter(EbookProfile.id == profile_id).first()
+    if not db_profile:
+        raise HTTPException(status_code=404, detail="Profile not found")
+
+    # Check if used by stories
+    used_count = db.query(Story).filter(Story.profile_id == profile_id).count()
+    if used_count > 0:
+        raise HTTPException(status_code=400, detail=f"Cannot delete profile because it is used by {used_count} stories")
+
+    db.delete(db_profile)
+    db.commit()
+    return {"message": "Profile deleted"}
+
+@app.post("/api/story/{story_id}/set_profile")
+async def set_story_profile(story_id: int, request: SetProfileRequest, db: Session = Depends(get_db)):
+    """Assign a profile to a story."""
+    story = db.query(Story).filter(Story.id == story_id).first()
+    if not story:
+        raise HTTPException(status_code=404, detail="Story not found")
+
+    profile = db.query(EbookProfile).filter(EbookProfile.id == request.profile_id).first()
+    if not profile:
+        raise HTTPException(status_code=404, detail="Profile not found")
+
+    story.profile_id = request.profile_id
+    db.commit()
+    return {"message": f"Profile set to {profile.name}"}
