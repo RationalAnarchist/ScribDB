@@ -1,5 +1,8 @@
 import logging
 import os
+import psutil
+import shutil
+import time
 from typing import Optional, List, Dict
 
 from fastapi import FastAPI, Depends, HTTPException, status, Request, Response
@@ -21,6 +24,8 @@ from logger import setup_logging
 # Configure logging
 setup_logging(log_level=config_manager.get('log_level'), log_file='logs/scrollarr.log')
 logger = logging.getLogger(__name__)
+
+START_TIME = time.time()
 
 app = FastAPI(title="Scrollarr")
 
@@ -180,6 +185,83 @@ async def activity_page(request: Request):
 async def calendar_page(request: Request):
     """Render the release calendar page."""
     return templates.TemplateResponse("calendar.html", {"request": request})
+
+@app.get("/status", response_class=HTMLResponse)
+async def status_page(request: Request):
+    """Render the status page."""
+    return templates.TemplateResponse("status.html", {"request": request})
+
+@app.get("/api/status")
+async def get_system_status():
+    """Get system status metrics."""
+    try:
+        # Disk Usage
+        total, used, free = shutil.disk_usage("/")
+        disk_usage = {
+            "total": f"{total / (1024**3):.2f} GB",
+            "used": f"{used / (1024**3):.2f} GB",
+            "free": f"{free / (1024**3):.2f} GB",
+            "percent": f"{(used / total) * 100:.1f}%"
+        }
+
+        # Database Size
+        db_url = config_manager.get("database_url", "sqlite:///library.db")
+        db_size = "Unknown"
+        if db_url.startswith("sqlite"):
+            db_path = db_url.replace("sqlite:///", "")
+            if os.path.exists(db_path):
+                size_bytes = os.path.getsize(db_path)
+                db_size = f"{size_bytes / (1024**2):.2f} MB"
+
+        # Memory Usage
+        mem = psutil.virtual_memory()
+        memory_usage = {
+            "total": f"{mem.total / (1024**3):.2f} GB",
+            "available": f"{mem.available / (1024**3):.2f} GB",
+            "percent": f"{mem.percent}%"
+        }
+
+        # Process Memory
+        process = psutil.Process()
+        process_mem = process.memory_info().rss / (1024**2) # MB
+
+        # CPU Usage
+        cpu_percent = psutil.cpu_percent(interval=None)
+
+        # Uptime
+        uptime_seconds = time.time() - START_TIME
+        uptime_hours = int(uptime_seconds // 3600)
+        uptime_minutes = int((uptime_seconds % 3600) // 60)
+        uptime = f"{uptime_hours}h {uptime_minutes}m"
+
+        return {
+            "disk": disk_usage,
+            "database_size": db_size,
+            "memory": memory_usage,
+            "process_memory": f"{process_mem:.2f} MB",
+            "cpu_percent": f"{cpu_percent}%",
+            "uptime": uptime
+        }
+    except Exception as e:
+        logger.error(f"Error fetching status: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/logs")
+async def get_logs(lines: int = 100):
+    """Get the last N lines of logs."""
+    log_file = "logs/scrollarr.log"
+    try:
+        if not os.path.exists(log_file):
+            return {"logs": "Log file not found."}
+
+        from collections import deque
+        with open(log_file, "r") as f:
+            # Efficiently read last N lines
+            last_lines = deque(f, maxlen=lines)
+            return {"logs": "".join(last_lines)}
+    except Exception as e:
+         logger.error(f"Error reading logs: {e}")
+         return {"logs": f"Error reading logs: {str(e)}"}
 
 @app.get("/api/calendar")
 async def get_calendar_events(response: Response, start: Optional[str] = None, end: Optional[str] = None):

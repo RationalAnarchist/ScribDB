@@ -35,12 +35,12 @@ This document outlines the roadmap for evolving Scrollarr into a full-featured "
 #### 3. System Status Dashboard
 - **Goal:** Monitor application health.
 - **Tasks:**
-    1.  Create `/status` endpoint.
-    2.  Implement checks for:
-        -   Disk Usage (Free/Total).
-        -   Database Size.
-        -   Memory Usage.
-    3.  Add Log Viewer widget (tail `scrollarr.log`).
+    1.  [x] Create `/status` endpoint.
+    2.  [x] Implement checks for:
+        -   [x] Disk Usage (Free/Total).
+        -   [x] Database Size.
+        -   [x] Memory Usage.
+    3.  [x] Add Log Viewer widget (tail `scrollarr.log`).
 
 #### 4. Library Import
 - **Goal:** Import existing EPUBs.
