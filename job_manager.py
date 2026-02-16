@@ -169,14 +169,42 @@ class JobManager:
                     session.commit()
                     logger.info(f"Successfully downloaded: {chapter.title}")
 
-                    # Notify success
-                    self.notification_manager.dispatch('on_download', {
-                        'story_title': story.title,
-                        'chapter_title': chapter.title,
-                        'chapter_id': chapter.id,
-                        'story_id': story.id,
-                        'file_path': filepath
-                    })
+                    # Check for remaining pending/failed chapters for this story
+                    remaining_count = session.query(Chapter).filter(
+                        Chapter.story_id == story.id,
+                        Chapter.status.in_(['pending', 'failed'])
+                    ).count()
+
+                    if remaining_count == 0:
+                        logger.info(f"Story {story.title} download complete (no pending/failed chapters). Compiling full ebook...")
+
+                        try:
+                            # Compile full story
+                            from ebook_builder import EbookBuilder
+                            builder = EbookBuilder()
+                            ebook_path = builder.compile_full_story(story.id)
+
+                            logger.info(f"Full story compiled at {ebook_path}")
+
+                            # Notify success with full ebook
+                            self.notification_manager.dispatch('on_download', {
+                                'story_title': story.title,
+                                'chapter_title': "Full Story Download",
+                                'chapter_id': chapter.id,
+                                'story_id': story.id,
+                                'file_path': ebook_path
+                            })
+
+                        except Exception as e:
+                            logger.error(f"Failed to compile full story ebook: {e}")
+                            self.notification_manager.dispatch('on_failure', {
+                                'story_title': story.title,
+                                'chapter_title': "Ebook Compilation",
+                                'story_id': story.id,
+                                'error': f"Failed to compile ebook: {str(e)}"
+                            })
+                    else:
+                        logger.debug(f"Story {story.title} has {remaining_count} remaining items. Skipping notification.")
 
                 except Exception as e:
                     logger.error(f"Failed to download chapter {chapter.title}: {e}")

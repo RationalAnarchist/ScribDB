@@ -21,6 +21,16 @@
             <p class="text-xs text-gray-500 mt-2">Currently supports: Royal Road</p>
         </div>
 
+        <div class="mb-6">
+            <label class="block text-gray-300 text-sm font-bold mb-2" for="profile-select">
+                Ebook Profile
+            </label>
+            <select id="profile-select" class="w-full p-3 rounded bg-gray-700 text-white border border-gray-600 focus:outline-none focus:border-blue-500 transition-colors">
+                <!-- Profiles loaded via JS -->
+            </select>
+            <p class="text-xs text-gray-500 mt-2">Determines the format (EPUB, PDF) and style of the ebook.</p>
+        </div>
+
         <div id="preview-area" class="hidden animate-fade-in">
             <div class="flex items-start gap-6 p-4 bg-gray-700/50 rounded-lg border border-gray-600">
                 <img id="preview-cover" src="" class="w-24 h-36 object-cover rounded shadow-md">
@@ -85,8 +95,28 @@
             }
         }
 
+        async function loadProfiles() {
+            try {
+                const res = await fetch('/api/profiles');
+                const profiles = await res.json();
+                const select = document.getElementById('profile-select');
+                select.innerHTML = '';
+                profiles.forEach(p => {
+                    const opt = document.createElement('option');
+                    opt.value = p.id;
+                    opt.text = `${p.name} (${p.output_format.toUpperCase()})`;
+                    if (p.id === 1) opt.selected = true; // Default to Standard
+                    select.appendChild(opt);
+                });
+            } catch (e) {
+                console.error("Failed to load profiles", e);
+            }
+        }
+
         async function addStory() {
             const url = document.getElementById('url-input').value;
+            const profile_id = document.getElementById('profile-select').value;
+
             const btn = document.getElementById('add-btn');
             const originalText = btn.innerHTML;
             btn.disabled = true;
@@ -99,7 +129,7 @@
                 const response = await fetch('/api/add', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({url: url})
+                    body: JSON.stringify({url: url, profile_id: parseInt(profile_id)})
                 });
 
                 if (!response.ok) throw new Error('Failed to add story');
@@ -114,5 +144,8 @@
                 btn.innerHTML = originalText;
             }
         }
+
+        // Initialize
+        loadProfiles();
     </script>
 {% endblock %}

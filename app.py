@@ -58,6 +58,7 @@ def get_db():
 # Models for API
 class UrlRequest(BaseModel):
     url: str
+    profile_id: Optional[int] = None
 
 class SettingsRequest(BaseModel):
     download_path: str
@@ -77,12 +78,14 @@ class ProfileCreate(BaseModel):
     description: Optional[str] = None
     css: Optional[str] = None
     output_format: str = 'epub'
+    pdf_page_size: str = 'A4'
 
 class ProfileUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
     css: Optional[str] = None
     output_format: Optional[str] = None
+    pdf_page_size: Optional[str] = None
 
 class SetProfileRequest(BaseModel):
     profile_id: int
@@ -93,6 +96,7 @@ class ProfileResponse(BaseModel):
     description: Optional[str] = None
     css: Optional[str] = None
     output_format: str
+    pdf_page_size: Optional[str] = 'A4'
 
     class Config:
         from_attributes = True
@@ -465,7 +469,7 @@ async def add_story(request: UrlRequest):
         raise HTTPException(status_code=500, detail="StoryManager not initialized")
 
     try:
-        story_id = story_manager.add_story(request.url)
+        story_id = story_manager.add_story(request.url, request.profile_id)
         return {"story_id": story_id, "message": "Story added successfully"}
     except Exception as e:
         logger.error(f"Add story error: {e}")
@@ -581,7 +585,8 @@ async def create_profile(profile: ProfileCreate, db: Session = Depends(get_db)):
         name=profile.name,
         description=profile.description,
         css=profile.css,
-        output_format=profile.output_format
+        output_format=profile.output_format,
+        pdf_page_size=profile.pdf_page_size
     )
     db.add(new_profile)
     db.commit()
@@ -609,6 +614,8 @@ async def update_profile(profile_id: int, profile: ProfileUpdate, db: Session = 
         db_profile.css = profile.css
     if profile.output_format is not None:
         db_profile.output_format = profile.output_format
+    if profile.pdf_page_size is not None:
+        db_profile.pdf_page_size = profile.pdf_page_size
 
     db.commit()
     return db_profile

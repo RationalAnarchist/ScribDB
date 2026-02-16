@@ -18,6 +18,9 @@
                 <option value="royalroad">Royal Road</option>
                 <option value="ao3">Archive of Our Own</option>
             </select>
+            <select id="profile-select-search" class="p-3 rounded bg-gray-700 text-white border border-gray-600 focus:outline-none focus:border-blue-500 transition-colors">
+                <!-- Profiles loaded via JS -->
+            </select>
             <button onclick="performSearch()" id="search-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded transition-colors flex items-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -112,7 +115,26 @@
         }
     }
 
+    async function loadProfiles() {
+        try {
+            const res = await fetch('/api/profiles');
+            const profiles = await res.json();
+            const select = document.getElementById('profile-select-search');
+            select.innerHTML = '';
+            profiles.forEach(p => {
+                const opt = document.createElement('option');
+                opt.value = p.id;
+                opt.text = `${p.name} (${p.output_format.toUpperCase()})`;
+                if (p.id === 1) opt.selected = true; // Default to Standard
+                select.appendChild(opt);
+            });
+        } catch (e) {
+            console.error("Failed to load profiles", e);
+        }
+    }
+
     async function addStory(url, btn) {
+        const profile_id = document.getElementById('profile-select-search').value;
         const originalText = btn.innerHTML;
         btn.disabled = true;
         btn.innerHTML = 'Adding...';
@@ -121,7 +143,7 @@
             const response = await fetch('/api/add', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({url: url})
+                body: JSON.stringify({url: url, profile_id: parseInt(profile_id)})
             });
 
             if (!response.ok) throw new Error('Failed to add story');
@@ -135,5 +157,8 @@
             btn.innerHTML = originalText;
         }
     }
+
+    // Initialize
+    loadProfiles();
 </script>
 {% endblock %}
