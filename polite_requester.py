@@ -36,12 +36,13 @@ class PoliteRequester:
         """
         self.cookies = cookies
 
-    def get(self, url: str) -> requests.Response:
+    def get(self, url: str, timeout: int = 30) -> requests.Response:
         """
         Sends a GET request to the specified URL with a random delay.
 
         Args:
             url: The URL to fetch.
+            timeout: Request timeout in seconds.
 
         Returns:
             requests.Response: The response object.
@@ -49,6 +50,6 @@ class PoliteRequester:
         delay = random.uniform(*self.delay_range)
         time.sleep(delay)
 
-        response = requests.get(url, headers=self.headers, cookies=self.cookies)
+        response = requests.get(url, headers=self.headers, cookies=self.cookies, timeout=timeout)
         response.raise_for_status()
         return response

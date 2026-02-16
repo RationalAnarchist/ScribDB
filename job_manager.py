@@ -54,6 +54,8 @@ class JobManager:
             replace_existing=True
         )
         logger.info(f"Jobs updated: check_updates (every {update_interval}h), download_queue (every {download_interval}s)")
+        for job in self.scheduler.get_jobs():
+            logger.info(f"Scheduled job: {job}")
 
     def check_for_updates(self):
         """
@@ -80,16 +82,22 @@ class JobManager:
 
     def process_download_queue(self):
         """
-        Downloads one pending chapter.
+        Downloads pending chapters until queue is empty.
         """
-        session = SessionLocal()
+        logger.info("Checking download queue for pending chapters...")
 
-        try:
-            # Query the database for the single oldest chapter where status == 'pending'
-            # Use with_for_update() to lock the row if possible
-            chapter = session.query(Chapter).filter(Chapter.status == 'pending').order_by(Chapter.id.asc()).with_for_update().first()
+        while True:
+            session = SessionLocal()
+            try:
+                # Query the database for the single oldest chapter where status == 'pending'
+                # Use with_for_update() to lock the row if possible
+                chapter = session.query(Chapter).filter(Chapter.status == 'pending').order_by(Chapter.id.asc()).with_for_update().first()
 
-            if chapter:
+                if not chapter:
+                    # No more chapters
+                    logger.debug("No pending chapters found.")
+                    break
+
                 story = chapter.story
                 logger.info(f"Processing chapter: {chapter.title} (ID: {chapter.id}) from story: {story.title}")
 
@@ -146,12 +154,12 @@ class JobManager:
 
                     session.commit()
 
-            else:
-                # No pending chapters, just return silently or debug log
-                pass
+            except Exception as e:
+                logger.error(f"Worker loop error: {e}")
+                session.rollback()
+                # Break to avoid infinite loop on DB error
+                break
+            finally:
+                session.close()
 
-        except Exception as e:
-            logger.error(f"Worker error: {e}")
-            session.rollback()
-        finally:
-            session.close()
+        logger.info("Download queue empty or processing stopped.")

@@ -102,7 +102,11 @@ DB_URL = os.getenv("DATABASE_URL")
 if not DB_URL:
     DB_URL = config_manager.get("database_url", "sqlite:///library.db")
 
-engine = create_engine(DB_URL)
+connect_args = {}
+if DB_URL.startswith("sqlite"):
+    connect_args["check_same_thread"] = False
+
+engine = create_engine(DB_URL, connect_args=connect_args)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 def run_migrations():
