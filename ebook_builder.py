@@ -262,7 +262,11 @@ class EbookBuilder:
             if not chapters:
                 raise ValueError(f"No chapters found for volume {volume_number} of story {story_id}")
 
-            return self._compile_chapters(story, chapters, f"Vol {volume_number}")
+            # Use volume title if available in the first chapter
+            volume_title = chapters[0].volume_title
+            suffix = volume_title if volume_title else f"Vol {volume_number}"
+
+            return self._compile_chapters(story, chapters, suffix)
 
         finally:
             session.close()
