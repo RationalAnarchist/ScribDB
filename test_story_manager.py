@@ -221,5 +221,42 @@ class TestStoryManager(unittest.TestCase):
         self.assertEqual(chapter.status, 'pending')
         session.close()
 
+    def test_fill_missing_metadata(self):
+        # 1. Add a story with empty description
+        self.mock_provider.get_metadata.return_value = {
+            'title': 'Test Story',
+            'author': 'Test Author',
+            'cover_url': 'http://example.com/cover.jpg',
+            'description': '', # Empty description initially
+            'tags': 'Tag1'
+        }
+
+        story_id = self.manager.add_story("http://example.com/story")
+
+        # Verify initial state
+        session = SessionLocal()
+        story = session.query(Story).filter(Story.id == story_id).first()
+        self.assertEqual(story.description, '')
+        session.close()
+
+        # 2. Update mock provider to return a description
+        self.mock_provider.get_metadata.return_value = {
+            'title': 'Test Story',
+            'author': 'Test Author',
+            'cover_url': 'http://example.com/cover.jpg',
+            'description': 'New Description',
+            'tags': 'Tag1, Tag2'
+        }
+
+        # 3. Call fill_missing_metadata
+        self.manager.fill_missing_metadata()
+
+        # 4. Verify description is updated
+        session = SessionLocal()
+        story = session.query(Story).filter(Story.id == story_id).first()
+        self.assertEqual(story.description, 'New Description')
+        self.assertEqual(story.tags, 'Tag1, Tag2')
+        session.close()
+
 if __name__ == '__main__':
     unittest.main()

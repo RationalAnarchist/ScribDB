@@ -20,6 +20,16 @@ class JobManager:
         init_db()
         self.update_jobs()
         self.scheduler.start()
+
+        # Schedule immediate run of metadata check on startup
+        from datetime import datetime, timedelta
+        self.scheduler.add_job(
+            self.check_missing_metadata,
+            'date',
+            run_date=datetime.now() + timedelta(seconds=10),
+            id='check_metadata_startup'
+        )
+
         logger.info("JobManager started.")
 
     def stop(self):
@@ -53,9 +63,27 @@ class JobManager:
             max_instances=1, # Prevent overlap
             replace_existing=True
         )
-        logger.info(f"Jobs updated: check_updates (every {update_interval}h), download_queue (every {download_interval}s)")
+
+        # Metadata Check Job
+        # Run infrequently, e.g., every 12 hours
+        self.scheduler.add_job(
+            self.check_missing_metadata,
+            'interval',
+            hours=12,
+            id='check_metadata',
+            replace_existing=True
+        )
+
+        logger.info(f"Jobs updated: check_updates (every {update_interval}h), download_queue (every {download_interval}s), check_metadata (every 12h)")
         for job in self.scheduler.get_jobs():
             logger.info(f"Scheduled job: {job}")
+
+    def check_missing_metadata(self):
+        """
+        Checks for missing metadata in stories and attempts to retrieve it.
+        """
+        logger.info("Running scheduled metadata check...")
+        self.story_manager.fill_missing_metadata()
 
     def check_for_updates(self):
         """
