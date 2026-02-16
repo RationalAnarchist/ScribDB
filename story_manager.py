@@ -9,9 +9,11 @@ from core_logic import SourceManager
 from royalroad import RoyalRoadSource
 from ao3 import AO3Source
 from questionablequesting import QuestionableQuestingSource
-from database import Story, Chapter, Source, SessionLocal, init_db, engine
+from database import Story, Chapter, Source, SessionLocal, init_db, engine, DownloadHistory
 from config import config_manager
 from notifications import NotificationManager
+import shutil
+import glob
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -610,6 +612,91 @@ class StoryManager:
                 'avg_interval_days': avg_interval_seconds / 86400,
                 'history_count': len(chapters)
             }
+        finally:
+            session.close()
+
+    def delete_story(self, story_id: int, delete_content: bool):
+        """
+        Deletes a story and optionally its downloaded content.
+        """
+        session = SessionLocal()
+        try:
+            story = session.query(Story).filter(Story.id == story_id).first()
+            if not story:
+                raise ValueError(f"Story with ID {story_id} not found")
+
+            if delete_content:
+                logger.info(f"Deleting content for story '{story.title}'...")
+
+                # 1. Delete source files (chapters)
+                download_path = config_manager.get('download_path')
+
+                # Construct expected directory name
+                safe_title = "".join([c for c in story.title if c.isalpha() or c.isdigit() or c==' ']).rstrip()
+                story_dir_name = f"{story_id}_{safe_title.replace(' ', '_')}"
+                story_path = os.path.join(download_path, story_dir_name)
+
+                # Primary delete
+                if os.path.exists(story_path):
+                    try:
+                        shutil.rmtree(story_path)
+                        logger.info(f"Deleted directory: {story_path}")
+                    except Exception as e:
+                        logger.error(f"Failed to delete directory {story_path}: {e}")
+
+                # Fallback: find any directory starting with ID
+                # This handles cases where title might have changed
+                try:
+                    candidates = glob.glob(os.path.join(download_path, f"{story_id}_*"))
+                    for cand in candidates:
+                        if os.path.isdir(cand):
+                            shutil.rmtree(cand)
+                            logger.info(f"Deleted fallback directory: {cand}")
+                except Exception as e:
+                     logger.error(f"Error during fallback deletion: {e}")
+
+                # 2. Delete generated ebooks
+                library_path = config_manager.get('library_path', 'library')
+                filename_pattern = config_manager.get('filename_pattern', '{Title} - Vol {Volume}')
+
+                # Identify volumes
+                volumes = set(c.volume_number for c in story.chapters if c.volume_number)
+                if not volumes:
+                    volumes = {1}
+
+                suffixes = [f"Vol {v}" for v in volumes] + ["Full"]
+
+                for suffix in suffixes:
+                    # Construct filename
+                    filename = filename_pattern.replace('{Title}', story.title)\
+                                               .replace('{Author}', story.author)\
+                                               .replace('{Volume}', suffix)
+
+                    # Sanitize filename
+                    safe_filename = "".join([c for c in filename if c.isalnum() or c in (' ', '-', '_', '.')]).strip()
+
+                    for ext in ['.epub', '.pdf']:
+                        path = os.path.join(library_path, safe_filename + ext)
+                        if os.path.exists(path):
+                            try:
+                                os.remove(path)
+                                logger.info(f"Deleted ebook: {path}")
+                            except Exception as e:
+                                logger.error(f"Failed to delete ebook {path}: {e}")
+
+            # Delete database records
+            # Manually delete history
+            session.query(DownloadHistory).filter(DownloadHistory.story_id == story_id).delete()
+
+            # Delete story (cascades to chapters)
+            session.delete(story)
+            session.commit()
+            logger.info(f"Story {story_id} deleted.")
+
+        except Exception as e:
+            session.rollback()
+            logger.error(f"Error deleting story {story_id}: {e}")
+            raise e
         finally:
             session.close()
 

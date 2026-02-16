@@ -523,6 +523,20 @@ def retry_story(story_id: int):
         logger.error(f"Retry error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.delete("/api/story/{story_id}")
+async def delete_story(story_id: int, delete_content: bool = False):
+    """Delete a story."""
+    if not story_manager:
+        raise HTTPException(status_code=500, detail="StoryManager not initialized")
+    try:
+        story_manager.delete_story(story_id, delete_content)
+        return {"message": "Story deleted successfully"}
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        logger.error(f"Delete error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.get("/story/{story_id}", response_class=HTMLResponse)
 async def story_details(story_id: int, request: Request, db: Session = Depends(get_db)):
     """Render story details page."""
