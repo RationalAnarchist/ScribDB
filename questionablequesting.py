@@ -336,7 +336,11 @@ class QuestionableQuestingAllPostsSource(QuestionableQuestingSource):
 
             # Find all posts
             # XenForo 2: article.message--post
+            # Also handle older XenForo or structure variations if needed, but standard is message--post
             posts = soup.select('.message--post')
+
+            # Some threads might embed the first post in a different container if it's the OP?
+            # Usually OP is just the first message--post.
 
             for post in posts:
                 # Get Post ID
@@ -350,7 +354,9 @@ class QuestionableQuestingAllPostsSource(QuestionableQuestingSource):
                 # .message-userDetails .username
                 user_tag = post.select_one('.message-userDetails .username')
                 if not user_tag:
+                    # Fallback: sometimes user details are hidden or structure is different
                     continue
+
                 post_author = user_tag.get_text(strip=True)
 
                 # Check if it's the author
@@ -370,6 +376,7 @@ class QuestionableQuestingAllPostsSource(QuestionableQuestingSource):
                     chapter_title = tm_title
                 else:
                     # Not a threadmark.
+                    # If this is the FIRST post and it's NOT a threadmark, it's definitely Prologue part 1.
                     if part_counter == 0:
                         part_counter = 1
                     else:
