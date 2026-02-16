@@ -1,0 +1,354 @@
+{% extends "base.html" %}
+
+{% block title %}Notifications - Scrollarr{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-white mb-2">Notifications</h1>
+        <p class="text-gray-400">Configure how you want to be notified about updates and downloads.</p>
+    </div>
+
+    <!-- SMTP Settings -->
+    <div class="bg-gray-800 rounded-lg shadow-lg p-6 mb-8 border border-gray-700">
+        <h2 class="text-xl font-semibold text-white mb-4">SMTP Settings (Email)</h2>
+        <form id="smtpForm" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-400 mb-1">SMTP Host</label>
+                    <input type="text" id="smtp_host" name="smtp_host" class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white focus:outline-none focus:border-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-400 mb-1">SMTP Port</label>
+                    <input type="number" id="smtp_port" name="smtp_port" class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white focus:outline-none focus:border-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-400 mb-1">Username</label>
+                    <input type="text" id="smtp_user" name="smtp_user" class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white focus:outline-none focus:border-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-400 mb-1">Password</label>
+                    <input type="password" id="smtp_password" name="smtp_password" class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white focus:outline-none focus:border-blue-500">
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-gray-400 mb-1">From Email</label>
+                    <input type="email" id="smtp_from_email" name="smtp_from_email" class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white focus:outline-none focus:border-blue-500">
+                </div>
+            </div>
+            <div class="flex justify-end">
+                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded transition-colors">
+                    Save SMTP Settings
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Notification Targets -->
+    <div class="bg-gray-800 rounded-lg shadow-lg p-6 border border-gray-700">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-xl font-semibold text-white">Notification Targets</h2>
+            <button onclick="openModal()" class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded transition-colors flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                Add Target
+            </button>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-gray-400">
+                <thead class="bg-gray-700 text-gray-200 uppercase text-xs">
+                    <tr>
+                        <th class="px-4 py-3">Name</th>
+                        <th class="px-4 py-3">Type</th>
+                        <th class="px-4 py-3">Target</th>
+                        <th class="px-4 py-3">Events</th>
+                        <th class="px-4 py-3">Status</th>
+                        <th class="px-4 py-3 text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="targetsTableBody" class="divide-y divide-gray-700">
+                    <!-- Targets will be loaded here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Add/Edit Modal -->
+<div id="targetModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+    <div class="bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-lg border border-gray-700">
+        <h3 id="modalTitle" class="text-xl font-bold text-white mb-4">Add Notification Target</h3>
+        <form id="targetForm" class="space-y-4">
+            <input type="hidden" id="target_id">
+            <div>
+                <label class="block text-sm font-medium text-gray-400 mb-1">Name</label>
+                <input type="text" id="target_name" required class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white focus:outline-none focus:border-blue-500">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-400 mb-1">Type</label>
+                <select id="target_kind" required class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white focus:outline-none focus:border-blue-500">
+                    <option value="webhook">Webhook</option>
+                    <option value="email">Email</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-400 mb-1">Target (URL or Email)</label>
+                <input type="text" id="target_target" required class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white focus:outline-none focus:border-blue-500">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-400 mb-1">Events</label>
+                <div class="space-y-2">
+                    <label class="inline-flex items-center">
+                        <input type="checkbox" class="form-checkbox bg-gray-700 border-gray-600 text-blue-500 event-checkbox" value="on_download">
+                        <span class="ml-2 text-gray-300">On Download</span>
+                    </label>
+                    <label class="inline-flex items-center ml-4">
+                        <input type="checkbox" class="form-checkbox bg-gray-700 border-gray-600 text-blue-500 event-checkbox" value="on_failure">
+                        <span class="ml-2 text-gray-300">On Failure</span>
+                    </label>
+                    <label class="inline-flex items-center ml-4">
+                        <input type="checkbox" class="form-checkbox bg-gray-700 border-gray-600 text-blue-500 event-checkbox" value="on_new_chapters">
+                        <span class="ml-2 text-gray-300">On New Chapters</span>
+                    </label>
+                </div>
+            </div>
+            <div id="emailOptions" class="hidden">
+                <label class="inline-flex items-center">
+                    <input type="checkbox" id="target_attach_file" class="form-checkbox bg-gray-700 border-gray-600 text-blue-500">
+                    <span class="ml-2 text-gray-300">Attach File (Email only)</span>
+                </label>
+            </div>
+            <div>
+                <label class="inline-flex items-center">
+                    <input type="checkbox" id="target_enabled" class="form-checkbox bg-gray-700 border-gray-600 text-blue-500" checked>
+                    <span class="ml-2 text-gray-300">Enabled</span>
+                </label>
+            </div>
+            <div class="flex justify-end space-x-3 mt-6">
+                <button type="button" onclick="closeModal()" class="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-500">Cancel</button>
+                <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Save</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let currentTargets = [];
+
+    async function loadSettings() {
+        try {
+            const response = await fetch('/api/notifications/settings');
+            const data = await response.json();
+
+            // SMTP
+            document.getElementById('smtp_host').value = data.smtp.smtp_host;
+            document.getElementById('smtp_port').value = data.smtp.smtp_port;
+            document.getElementById('smtp_user').value = data.smtp.smtp_user;
+            document.getElementById('smtp_password').value = data.smtp.smtp_password;
+            document.getElementById('smtp_from_email').value = data.smtp.smtp_from_email;
+
+            // Targets
+            currentTargets = data.targets;
+            renderTargets();
+        } catch (e) {
+            console.error('Failed to load settings:', e);
+        }
+    }
+
+    function renderTargets() {
+        const tbody = document.getElementById('targetsTableBody');
+        tbody.innerHTML = '';
+
+        if (currentTargets.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" class="px-4 py-4 text-center text-gray-500">No notification targets configured.</td></tr>';
+            return;
+        }
+
+        currentTargets.forEach(target => {
+            const tr = document.createElement('tr');
+            tr.className = 'hover:bg-gray-750 transition-colors';
+            tr.innerHTML = `
+                <td class="px-4 py-3 font-medium text-white">${target.name}</td>
+                <td class="px-4 py-3">
+                    <span class="px-2 py-1 text-xs font-semibold rounded-full ${target.kind === 'webhook' ? 'bg-purple-900 text-purple-200' : 'bg-blue-900 text-blue-200'}">
+                        ${target.kind}
+                    </span>
+                </td>
+                <td class="px-4 py-3 truncate max-w-xs" title="${target.target}">${target.target}</td>
+                <td class="px-4 py-3 text-sm">${target.events.split(',').join(', ')}</td>
+                <td class="px-4 py-3">
+                    <span class="px-2 py-1 text-xs font-semibold rounded-full ${target.enabled ? 'bg-green-900 text-green-200' : 'bg-red-900 text-red-200'}">
+                        ${target.enabled ? 'Enabled' : 'Disabled'}
+                    </span>
+                </td>
+                <td class="px-4 py-3 text-right space-x-2">
+                    <button onclick="testTarget('${target.kind}', '${target.target}')" class="text-blue-400 hover:text-blue-300" title="Test">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </button>
+                    <button onclick="editTarget(${target.id})" class="text-gray-400 hover:text-white" title="Edit">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                    </button>
+                    <button onclick="deleteTarget(${target.id})" class="text-red-400 hover:text-red-300" title="Delete">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    document.getElementById('smtpForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const data = {
+            smtp_host: document.getElementById('smtp_host').value,
+            smtp_port: parseInt(document.getElementById('smtp_port').value),
+            smtp_user: document.getElementById('smtp_user').value,
+            smtp_password: document.getElementById('smtp_password').value,
+            smtp_from_email: document.getElementById('smtp_from_email').value
+        };
+
+        try {
+            const response = await fetch('/api/notifications/smtp', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(data)
+            });
+            if (response.ok) {
+                alert('SMTP Settings saved.');
+            } else {
+                alert('Failed to save settings.');
+            }
+        } catch (e) {
+            console.error(e);
+            alert('Error saving settings.');
+        }
+    });
+
+    // Modal Logic
+    const modal = document.getElementById('targetModal');
+    const targetKind = document.getElementById('target_kind');
+    const emailOptions = document.getElementById('emailOptions');
+
+    targetKind.addEventListener('change', () => {
+        if (targetKind.value === 'email') {
+            emailOptions.classList.remove('hidden');
+        } else {
+            emailOptions.classList.add('hidden');
+        }
+    });
+
+    function openModal(target = null) {
+        if (target) {
+            document.getElementById('modalTitle').textContent = 'Edit Notification Target';
+            document.getElementById('target_id').value = target.id;
+            document.getElementById('target_name').value = target.name;
+            document.getElementById('target_kind').value = target.kind;
+            document.getElementById('target_target').value = target.target;
+            document.getElementById('target_attach_file').checked = target.attach_file;
+            document.getElementById('target_enabled').checked = target.enabled;
+
+            const events = target.events.split(',');
+            document.querySelectorAll('.event-checkbox').forEach(cb => {
+                cb.checked = events.includes(cb.value);
+            });
+        } else {
+            document.getElementById('modalTitle').textContent = 'Add Notification Target';
+            document.getElementById('targetForm').reset();
+            document.getElementById('target_id').value = '';
+        }
+
+        // Trigger change to show/hide email options
+        targetKind.dispatchEvent(new Event('change'));
+
+        modal.classList.remove('hidden');
+    }
+
+    function closeModal() {
+        modal.classList.add('hidden');
+    }
+
+    function editTarget(id) {
+        const target = currentTargets.find(t => t.id === id);
+        if (target) openModal(target);
+    }
+
+    async function deleteTarget(id) {
+        if (!confirm('Are you sure?')) return;
+        try {
+            const response = await fetch(`/api/notifications/targets/${id}`, { method: 'DELETE' });
+            if (response.ok) {
+                loadSettings();
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    async function testTarget(kind, target) {
+        try {
+            const response = await fetch('/api/notifications/test', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ kind, target })
+            });
+            if (response.ok) {
+                alert('Test notification sent.');
+            } else {
+                alert('Failed to send test.');
+            }
+        } catch (e) {
+            console.error(e);
+            alert('Error sending test.');
+        }
+    }
+
+    document.getElementById('targetForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const events = Array.from(document.querySelectorAll('.event-checkbox:checked')).map(cb => cb.value).join(',');
+
+        const data = {
+            name: document.getElementById('target_name').value,
+            kind: document.getElementById('target_kind').value,
+            target: document.getElementById('target_target').value,
+            events: events,
+            attach_file: document.getElementById('target_attach_file').checked,
+            enabled: document.getElementById('target_enabled').checked
+        };
+
+        const id = document.getElementById('target_id').value;
+        const url = id ? `/api/notifications/targets/${id}` : '/api/notifications/targets';
+        const method = id ? 'PUT' : 'POST';
+
+        try {
+            const response = await fetch(url, {
+                method: method,
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(data)
+            });
+            if (response.ok) {
+                closeModal();
+                loadSettings();
+            } else {
+                alert('Failed to save target.');
+            }
+        } catch (e) {
+            console.error(e);
+            alert('Error saving target.');
+        }
+    });
+
+    // Initial load
+    window.addEventListener('load', loadSettings); // Fixed: loadSettings was defined with async def syntax error
+</script>
+{% endblock %}

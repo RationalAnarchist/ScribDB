@@ -12,7 +12,8 @@ from alembic import context
 sys.path.append(os.getcwd())
 
 # Import the database configuration
-from database import Base, DB_URL
+import database
+from database import Base
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -26,7 +27,7 @@ if config.config_file_name is not None:
         fileConfig(config.config_file_name)
 
 # Set the database URL in the alembic config
-config.set_main_option("sqlalchemy.url", DB_URL)
+config.set_main_option("sqlalchemy.url", database.DB_URL)
 
 # add your model's MetaData object here
 # for 'autogenerate' support

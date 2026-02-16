@@ -5,6 +5,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from sqlalchemy import func
 from database import SessionLocal, Story, Chapter, DownloadHistory, init_db
 from story_manager import StoryManager
+from notifications import NotificationManager
 from config import config_manager
 
 # Configure logging
@@ -14,6 +15,7 @@ class JobManager:
     def __init__(self):
         self.scheduler = BackgroundScheduler()
         self.story_manager = StoryManager()
+        self.notification_manager = NotificationManager()
 
     def start(self):
         """Starts the scheduler with configured jobs."""
@@ -167,6 +169,15 @@ class JobManager:
                     session.commit()
                     logger.info(f"Successfully downloaded: {chapter.title}")
 
+                    # Notify success
+                    self.notification_manager.dispatch('on_download', {
+                        'story_title': story.title,
+                        'chapter_title': chapter.title,
+                        'chapter_id': chapter.id,
+                        'story_id': story.id,
+                        'file_path': filepath
+                    })
+
                 except Exception as e:
                     logger.error(f"Failed to download chapter {chapter.title}: {e}")
                     # Error Handling: If the download fails, change the status to failed so we can track it.
@@ -181,6 +192,15 @@ class JobManager:
                     session.add(history)
 
                     session.commit()
+
+                    # Notify failure
+                    self.notification_manager.dispatch('on_failure', {
+                        'story_title': story.title,
+                        'chapter_title': chapter.title,
+                        'chapter_id': chapter.id,
+                        'story_id': story.id,
+                        'error': str(e)
+                    })
 
             except Exception as e:
                 logger.error(f"Worker loop error: {e}")

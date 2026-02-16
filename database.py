@@ -96,6 +96,20 @@ class EbookProfile(Base):
     def __repr__(self):
         return f"<EbookProfile(name='{self.name}')>"
 
+class NotificationSettings(Base):
+    __tablename__ = 'notification_settings'
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String, nullable=False)
+    kind = Column(String, nullable=False) # 'webhook', 'email'
+    target = Column(String, nullable=False) # URL or Email
+    events = Column(String, default='') # Comma-separated: 'download,failure,new_chapters'
+    attach_file = Column(Boolean, default=False)
+    enabled = Column(Boolean, default=True)
+
+    def __repr__(self):
+        return f"<NotificationSettings(name='{self.name}', kind='{self.kind}')>"
+
 # Setup database
 # Priority: Environment Variable > Config file > Default
 DB_URL = os.getenv("DATABASE_URL")
