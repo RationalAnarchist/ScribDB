@@ -7,10 +7,11 @@ import re
 
 # ReportLab imports for PDF generation
 try:
-    from reportlab.lib.pagesizes import letter
+    from reportlab.lib.pagesizes import A4, LETTER, A5, LEGAL, B5
     from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak, Image as ReportLabImage
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.lib.enums import TA_JUSTIFY, TA_CENTER
+    from reportlab.lib.units import inch
     HAS_REPORTLAB = True
 except ImportError:
     HAS_REPORTLAB = False
@@ -81,16 +82,29 @@ class EbookBuilder:
             print(f"Error generating EPUB: {e}")
             raise e
 
-    def make_pdf(self, title: str, author: str, chapters: List[Dict[str, str]], output_path: str, cover_path: Optional[str] = None, css: Optional[str] = None):
+    def make_pdf(self, title: str, author: str, chapters: List[Dict[str, str]], output_path: str, cover_path: Optional[str] = None, css: Optional[str] = None, page_size: str = 'A4'):
         """
         Generates a PDF file using ReportLab.
         """
         if not HAS_REPORTLAB:
             raise ImportError("ReportLab is not installed. Cannot generate PDF.")
 
-        doc = SimpleDocTemplate(output_path, pagesize=letter,
+        # Determine page size
+        size_map = {
+            'A4': A4,
+            'LETTER': LETTER,
+            'A5': A5,
+            'LEGAL': LEGAL,
+            'B5': B5,
+            '6X9': (6 * inch, 9 * inch),
+            '5X8': (5 * inch, 8 * inch)
+        }
+
+        ps = size_map.get(page_size.upper(), A4)
+
+        doc = SimpleDocTemplate(output_path, pagesize=ps,
                                 rightMargin=72, leftMargin=72,
-                                topMargin=72, bottomMargin=18)
+                                topMargin=72, bottomMargin=72)
 
         Story = []
         styles = getSampleStyleSheet()
@@ -225,25 +239,6 @@ class EbookBuilder:
         content = content.strip()
         return content
 
-    def make_mobi(self, title: str, author: str, chapters: List[Dict[str, str]], output_path: str, cover_path: Optional[str] = None, css: Optional[str] = None):
-        """
-        Generates a MOBI file.
-        Currently implements a fallback: Generates EPUB and copies it to .mobi.
-        """
-        # Temporary path for EPUB
-        temp_epub = output_path.replace('.mobi', '.epub')
-        self.make_epub(title, author, chapters, temp_epub, cover_path, css)
-
-        try:
-            shutil.copy(temp_epub, output_path)
-            print(f"MOBI (Renamed EPUB) generated at: {output_path}")
-            # Optional: remove temp epub if it wasn't the target
-            if temp_epub != output_path:
-                os.remove(temp_epub)
-        except Exception as e:
-            print(f"Error creating MOBI: {e}")
-            raise e
-
     def compile_volume(self, story_id: int, volume_number: int) -> str:
         """
         Compiles a specific volume of a story.
@@ -357,9 +352,10 @@ class EbookBuilder:
 
         # Dispatch
         if output_format == 'pdf':
-            self.make_pdf(book_title, story.author, epub_chapters, output_path, story.cover_path, css=profile_css)
-        elif output_format == 'mobi':
-            self.make_mobi(book_title, story.author, epub_chapters, output_path, story.cover_path, css=profile_css)
+            page_size = 'A4'
+            if story.profile and story.profile.pdf_page_size:
+                page_size = story.profile.pdf_page_size
+            self.make_pdf(book_title, story.author, epub_chapters, output_path, story.cover_path, css=profile_css, page_size=page_size)
         else:
             self.make_epub(book_title, story.author, epub_chapters, output_path, story.cover_path, css=profile_css)
 

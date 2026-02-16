@@ -30,12 +30,22 @@
                 </div>
                 <div class="mb-4">
                     <label class="block text-gray-400 text-sm font-bold mb-2">Output Format</label>
-                    <select id="profile-format" class="w-full p-2 rounded bg-gray-700 text-white border border-gray-600 focus:outline-none focus:border-blue-500">
+                    <select id="profile-format" onchange="togglePdfOptions()" class="w-full p-2 rounded bg-gray-700 text-white border border-gray-600 focus:outline-none focus:border-blue-500">
                         <option value="epub">EPUB (Default)</option>
-                        <option value="mobi">MOBI (Legacy)</option>
                         <option value="pdf">PDF</option>
                     </select>
-                    <p class="text-xs text-gray-500 mt-1">MOBI support is experimental/legacy.</p>
+                </div>
+                <div class="mb-4 hidden" id="pdf-options">
+                    <label class="block text-gray-400 text-sm font-bold mb-2">PDF Page Size</label>
+                    <select id="profile-pdf-size" class="w-full p-2 rounded bg-gray-700 text-white border border-gray-600 focus:outline-none focus:border-blue-500">
+                        <option value="A4">A4 (Default)</option>
+                        <option value="LETTER">Letter</option>
+                        <option value="A5">A5</option>
+                        <option value="LEGAL">Legal</option>
+                        <option value="B5">B5</option>
+                        <option value="6x9">6x9 (Trade)</option>
+                        <option value="5x8">5x8 (Pocket)</option>
+                    </select>
                 </div>
                 <div class="mb-4">
                     <label class="block text-gray-400 text-sm font-bold mb-2">Custom CSS</label>
@@ -120,6 +130,16 @@
         });
     }
 
+    function togglePdfOptions() {
+        const format = document.getElementById('profile-format').value;
+        const pdfOptions = document.getElementById('pdf-options');
+        if (format === 'pdf') {
+            pdfOptions.classList.remove('hidden');
+        } else {
+            pdfOptions.classList.add('hidden');
+        }
+    }
+
     function openModal(id = null) {
         document.getElementById('profile-modal').classList.remove('hidden');
         if (id) {
@@ -130,12 +150,15 @@
             document.getElementById('profile-desc').value = p.description || '';
             document.getElementById('profile-css').value = p.css || '';
             document.getElementById('profile-format').value = p.output_format || 'epub';
+            document.getElementById('profile-pdf-size').value = p.pdf_page_size || 'A4';
         } else {
             document.getElementById('modal-title').innerText = 'New Profile';
             document.getElementById('profile-form').reset();
             document.getElementById('profile-id').value = '';
             document.getElementById('profile-format').value = 'epub';
+            document.getElementById('profile-pdf-size').value = 'A4';
         }
+        togglePdfOptions();
     }
 
     function closeModal() {
@@ -149,8 +172,9 @@
         const description = document.getElementById('profile-desc').value;
         const css = document.getElementById('profile-css').value;
         const output_format = document.getElementById('profile-format').value;
+        const pdf_page_size = document.getElementById('profile-pdf-size').value;
 
-        const payload = { name, description, css, output_format };
+        const payload = { name, description, css, output_format, pdf_page_size };
 
         let url = '/api/profiles';
         let method = 'POST';

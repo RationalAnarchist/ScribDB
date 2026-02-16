@@ -93,6 +93,7 @@ class EbookProfile(Base):
     description = Column(String, nullable=True)
     css = Column(String, nullable=True)
     output_format = Column(String, default='epub')
+    pdf_page_size = Column(String, default='A4')
 
     def __repr__(self):
         return f"<EbookProfile(name='{self.name}')>"
