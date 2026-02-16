@@ -382,6 +382,53 @@ class StoryManager:
         finally:
             session.close()
 
+    def _update_metadata(self, story, provider):
+        """
+        Helper method to update story metadata using the given provider.
+        """
+        try:
+            metadata = provider.get_metadata(story.source_url)
+            story.title = metadata.get('title', story.title)
+            story.author = metadata.get('author', story.author)
+            story.cover_path = metadata.get('cover_url', story.cover_path)
+            story.description = metadata.get('description', story.description)
+            story.tags = metadata.get('tags', story.tags)
+            story.rating = metadata.get('rating', story.rating)
+            story.language = metadata.get('language', story.language)
+            story.publication_status = metadata.get('publication_status', story.publication_status)
+        except Exception as meta_err:
+            logger.warning(f"Failed to update metadata for {story.title}: {meta_err}")
+
+    def fill_missing_metadata(self):
+        """
+        Finds stories with missing metadata (empty description) and attempts to update them.
+        """
+        logger.info("Checking for stories with missing metadata...")
+        session = SessionLocal()
+        try:
+            # Check for missing description as a proxy for missing metadata
+            stories = session.query(Story).filter(
+                (Story.description == None) | (Story.description == "")
+            ).all()
+
+            if not stories:
+                logger.info("No stories found with missing metadata.")
+                return
+
+            logger.info(f"Found {len(stories)} stories with missing metadata.")
+
+            for story in stories:
+                provider = self.source_manager.get_provider_for_url(story.source_url)
+                if provider:
+                    logger.info(f"Updating metadata for: {story.title}")
+                    self._update_metadata(story, provider)
+
+            session.commit()
+        except Exception as e:
+            logger.error(f"Error in fill_missing_metadata: {e}")
+        finally:
+            session.close()
+
     def check_story_updates(self, story_id: int):
         """
         Fetches metadata and chapter list for a single story and updates the database.
@@ -399,18 +446,7 @@ class StoryManager:
                 raise ValueError(f"No provider found for story: {story.title}")
 
             # Fetch metadata and update story
-            try:
-                metadata = provider.get_metadata(story.source_url)
-                story.title = metadata.get('title', story.title)
-                story.author = metadata.get('author', story.author)
-                story.cover_path = metadata.get('cover_url', story.cover_path)
-                story.description = metadata.get('description', story.description)
-                story.tags = metadata.get('tags', story.tags)
-                story.rating = metadata.get('rating', story.rating)
-                story.language = metadata.get('language', story.language)
-                story.publication_status = metadata.get('publication_status', story.publication_status)
-            except Exception as meta_err:
-                logger.warning(f"Failed to update metadata for {story.title}: {meta_err}")
+            self._update_metadata(story, provider)
 
             # Fetch current chapters from source
             remote_chapters = provider.get_chapter_list(story.source_url)
