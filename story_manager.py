@@ -90,7 +90,7 @@ class StoryManager:
 
         return results
 
-    def add_story(self, url: str) -> int:
+    def add_story(self, url: str, profile_id: Optional[int] = None) -> int:
         """
         Adds a story to the database from the given URL.
         Fetches metadata and chapter list.
@@ -121,7 +121,8 @@ class StoryManager:
                     tags=metadata.get('tags'),
                     rating=metadata.get('rating'),
                     language=metadata.get('language'),
-                    publication_status=metadata.get('publication_status', 'Unknown')
+                    publication_status=metadata.get('publication_status', 'Unknown'),
+                    profile_id=profile_id if profile_id else 1 # Default to Standard (ID 1)
                 )
                 session.add(story)
                 session.flush()

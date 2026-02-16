@@ -58,6 +58,7 @@ def get_db():
 # Models for API
 class UrlRequest(BaseModel):
     url: str
+    profile_id: Optional[int] = None
 
 class SettingsRequest(BaseModel):
     download_path: str
@@ -468,7 +469,7 @@ async def add_story(request: UrlRequest):
         raise HTTPException(status_code=500, detail="StoryManager not initialized")
 
     try:
-        story_id = story_manager.add_story(request.url)
+        story_id = story_manager.add_story(request.url, request.profile_id)
         return {"story_id": story_id, "message": "Story added successfully"}
     except Exception as e:
         logger.error(f"Add story error: {e}")
