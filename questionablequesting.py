@@ -205,7 +205,9 @@ class QuestionableQuestingSource(BaseSource):
         response = self.requester.get(search_url)
         soup = BeautifulSoup(response.text, 'html.parser')
 
-        results = []
+        # Deduplication map: normalized_url -> result_dict
+        unique_results = {}
+
         # Results are usually in ol.block-body with li.block-row
         rows = soup.select('.block-row')
 
@@ -215,21 +217,32 @@ class QuestionableQuestingSource(BaseSource):
                 continue
 
             title = title_link.get_text(" ", strip=True)
-            url = urljoin(self.BASE_URL, title_link['href'])
+            raw_url = urljoin(self.BASE_URL, title_link['href'])
 
             # Ensure it's a thread
-            if '/threads/' not in url:
+            if '/threads/' not in raw_url:
                 continue
 
-            # Clean URL (remove /post-xyz etc if present, though search usually links to thread or post)
-            # If it links to a post, we might want to strip it to thread URL
-            # But identify() needs to work. identify works on /threads/
+            # Clean URL to base thread URL for deduplication
+            url = self._normalize_url(raw_url)
 
             # Author
+            # Search results show the author of the *post* that matched, not necessarily the thread starter.
+            # However, usually the meta line says "Thread by: [User]" or similar if it's the thread.
+            # But in search results for posts, it might say "Post by: [User]".
+            # We want the thread starter.
+            # Look for "Thread by: " in contentRow-minor
+            minor_text = row.select_one('.contentRow-minor')
             author = "Unknown"
-            author_link = row.select_one('.contentRow-minor a.username') # Or just a
-            if author_link:
-                author = author_link.get_text(strip=True)
+
+            if minor_text:
+                # Attempt to parse "Thread by" if available
+                for node in minor_text.find_all(string=True):
+                    if "Thread by" in node:
+                         next_link = node.find_next('a', class_='username')
+                         if next_link:
+                             author = next_link.get_text(strip=True)
+                             break
 
             # Snippet
             snippet = ""
@@ -237,15 +250,27 @@ class QuestionableQuestingSource(BaseSource):
             if snippet_div:
                 snippet = snippet_div.get_text(strip=True)
 
-            # De-duplicate by URL/Thread ID?
-            # Ideally handled by caller, but we can check if we already added this thread ID.
+            if url not in unique_results:
+                unique_results[url] = {
+                    'title': title,
+                    'url': url,
+                    'author': author,
+                    'description': snippet,
+                    'provider': 'Questionable Questing'
+                }
+            elif unique_results[url]['author'] == "Unknown" and author != "Unknown":
+                unique_results[url]['author'] = author
 
-            results.append({
-                'title': title,
-                'url': url,
-                'author': author,
-                'description': snippet,
-                'provider': 'Questionable Questing'
-            })
+        results = list(unique_results.values())
+
+        # Post-processing: If author is still "Unknown", fetch metadata for top results
+        # Limit to top 5 to avoid spamming
+        for res in results[:5]:
+            if res['author'] == "Unknown":
+                try:
+                    meta = self.get_metadata(res['url'])
+                    res['author'] = meta.get('author', 'Unknown')
+                except Exception:
+                    pass
 
         return results
