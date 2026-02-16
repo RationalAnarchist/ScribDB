@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+
+{% block title %}System Status - Scrollarr{% endblock %}
+
+{% block content %}
+    <header class="mb-8">
+        <h1 class="text-3xl font-bold">System Status</h1>
+        <p class="text-gray-400 mt-2">Monitor application health and logs.</p>
+    </header>
+
+    <!-- Metrics Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <!-- CPU -->
+        <div class="bg-gray-800 p-6 rounded-lg shadow-lg border-l-4 border-blue-500">
+            <h3 class="text-gray-400 text-sm font-semibold uppercase tracking-wider mb-2">CPU Usage</h3>
+            <p class="text-3xl font-bold" id="cpu-metric">Loading...</p>
+        </div>
+
+        <!-- Memory -->
+        <div class="bg-gray-800 p-6 rounded-lg shadow-lg border-l-4 border-purple-500">
+            <h3 class="text-gray-400 text-sm font-semibold uppercase tracking-wider mb-2">Memory Usage</h3>
+            <p class="text-3xl font-bold" id="memory-metric">Loading...</p>
+            <p class="text-xs text-gray-500 mt-1" id="memory-detail">Loading...</p>
+        </div>
+
+        <!-- Disk -->
+        <div class="bg-gray-800 p-6 rounded-lg shadow-lg border-l-4 border-green-500">
+            <h3 class="text-gray-400 text-sm font-semibold uppercase tracking-wider mb-2">Disk Usage</h3>
+            <p class="text-3xl font-bold" id="disk-metric">Loading...</p>
+            <p class="text-xs text-gray-500 mt-1" id="disk-detail">Loading...</p>
+        </div>
+
+         <!-- Uptime -->
+        <div class="bg-gray-800 p-6 rounded-lg shadow-lg border-l-4 border-yellow-500">
+            <h3 class="text-gray-400 text-sm font-semibold uppercase tracking-wider mb-2">Uptime</h3>
+            <p class="text-3xl font-bold" id="uptime-metric">Loading...</p>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+         <!-- DB Size -->
+        <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+            <h3 class="text-gray-400 text-sm font-semibold uppercase tracking-wider mb-2">Database Size</h3>
+            <p class="text-2xl font-bold" id="db-metric">Loading...</p>
+        </div>
+
+         <!-- Process Memory -->
+        <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+             <h3 class="text-gray-400 text-sm font-semibold uppercase tracking-wider mb-2">App Memory</h3>
+            <p class="text-2xl font-bold" id="process-mem-metric">Loading...</p>
+        </div>
+    </div>
+
+    <!-- Logs -->
+    <div class="bg-gray-800 rounded-lg shadow-lg overflow-hidden flex flex-col h-[500px]">
+        <div class="bg-gray-900 px-6 py-4 flex justify-between items-center border-b border-gray-700">
+            <h3 class="text-lg font-bold">Application Logs</h3>
+             <div class="flex items-center gap-4">
+                <span class="text-xs text-gray-400 flex items-center gap-1">
+                    <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                    Live
+                </span>
+             </div>
+        </div>
+        <div class="flex-1 p-4 overflow-auto font-mono text-sm bg-black text-green-400" id="log-container">
+            <pre id="log-content">Fetching logs...</pre>
+        </div>
+    </div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const logContent = document.getElementById('log-content');
+    const logContainer = document.getElementById('log-container');
+    let autoScroll = true;
+
+    // Detect manual scroll to disable auto-scroll
+    logContainer.addEventListener('scroll', () => {
+        if (logContainer.scrollTop + logContainer.clientHeight < logContainer.scrollHeight - 20) {
+            autoScroll = false;
+        } else {
+            autoScroll = true;
+        }
+    });
+
+     async function fetchStatus() {
+        try {
+            const response = await fetch('/api/status');
+            const data = await response.json();
+
+            document.getElementById('cpu-metric').textContent = data.cpu_percent;
+
+            document.getElementById('memory-metric').textContent = data.memory.percent;
+            document.getElementById('memory-detail').textContent = `${data.memory.available} available of ${data.memory.total}`;
+
+            document.getElementById('disk-metric').textContent = data.disk.percent;
+            document.getElementById('disk-detail').textContent = `${data.disk.free} free of ${data.disk.total}`;
+
+            document.getElementById('uptime-metric').textContent = data.uptime;
+            document.getElementById('db-metric').textContent = data.database_size;
+            document.getElementById('process-mem-metric').textContent = data.process_memory;
+
+        } catch (err) {
+            console.error("Error fetching status:", err);
+        }
+    }
+
+    async function fetchLogs() {
+        try {
+            const response = await fetch('/api/logs');
+            const data = await response.json();
+
+            logContent.textContent = data.logs;
+
+            if (autoScroll) {
+                logContainer.scrollTop = logContainer.scrollHeight;
+            }
+        } catch (err) {
+             console.error("Error fetching logs:", err);
+        }
+    }
+
+    // Initial load
+    fetchStatus();
+    fetchLogs();
+
+    // Poll
+    setInterval(fetchStatus, 5000);
+    setInterval(fetchLogs, 5000);
+</script>
+{% endblock %}
