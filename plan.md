@@ -27,10 +27,10 @@ This document outlines the roadmap for evolving Scrollarr into a full-featured "
 #### 2. Release Calendar & Smart Scheduling
 - **Goal:** Track publication dates to predict releases.
 - **Tasks:**
-    1.  **Database Migration:** Add `published_date` column to `Chapter` table.
-    2.  **Scraper Updates:** Update `RoyalRoadSource` and `AO3Source` to parse dates.
-    3.  **Logic:** Implement `predict_next_chapter(story_id)` based on history.
-    4.  **UI:** Create `/calendar` page showing past releases and predicted future ones.
+    1.  [x] **Database Migration:** Add `published_date` column to `Chapter` table.
+    2.  [x] **Scraper Updates:** Update `RoyalRoadSource` and `AO3Source` to parse dates.
+    3.  [x] **Logic:** Implement `predict_next_chapter(story_id)` based on history.
+    4.  [x] **UI:** Create `/calendar` page showing past releases and predicted future ones.
 
 #### 3. System Status Dashboard
 - **Goal:** Monitor application health.

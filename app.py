@@ -2,7 +2,7 @@ import logging
 import os
 from typing import Optional, List, Dict
 
-from fastapi import FastAPI, Depends, HTTPException, status, Request
+from fastapi import FastAPI, Depends, HTTPException, status, Request, Response
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
@@ -175,6 +175,29 @@ async def add_new_page(request: Request):
 async def activity_page(request: Request):
     """Render the activity page."""
     return templates.TemplateResponse("activity.html", {"request": request})
+
+@app.get("/calendar", response_class=HTMLResponse)
+async def calendar_page(request: Request):
+    """Render the release calendar page."""
+    return templates.TemplateResponse("calendar.html", {"request": request})
+
+@app.get("/api/calendar")
+async def get_calendar_events(response: Response, start: Optional[str] = None, end: Optional[str] = None):
+    """Get calendar events for all stories."""
+    # Prevent caching
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+
+    if not story_manager:
+        raise HTTPException(status_code=500, detail="StoryManager not initialized")
+
+    try:
+        events = story_manager.get_calendar_events(start, end)
+        return events
+    except Exception as e:
+        logger.error(f"Error fetching calendar events: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/settings", response_class=HTMLResponse)
 async def settings_page(request: Request):

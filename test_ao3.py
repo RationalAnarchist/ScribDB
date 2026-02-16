@@ -96,6 +96,8 @@ class TestAO3Source(unittest.TestCase):
         self.assertEqual(len(chapters), 2)
         self.assertEqual(chapters[0]['title'], "Chapter 1")
         self.assertEqual(chapters[0]['url'], "https://archiveofourown.org/works/123/chapters/1")
+        self.assertEqual(chapters[0]['published_date'].strftime('%Y-%m-%d'), '2023-01-01')
+        self.assertEqual(chapters[1]['published_date'].strftime('%Y-%m-%d'), '2023-01-02')
 
     def test_get_chapter_list_single(self):
         # Mock navigate page returning nothing (or empty list)

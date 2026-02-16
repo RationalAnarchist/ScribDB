@@ -66,9 +66,11 @@ class TestRoyalRoadSource(unittest.TestCase):
                 <table id="chapters">
                     <tr class="chapter-row">
                         <td><a href="/fiction/123/chapter/1">Chapter 1: The Beginning</a></td>
+                        <td><time datetime="2023-01-01T12:00:00Z">Jan 01, 2023</time></td>
                     </tr>
                     <tr class="chapter-row">
                         <td><a href="/fiction/123/chapter/2">Chapter 2: The End</a></td>
+                        <!-- No date test case -->
                     </tr>
                 </table>
             </body>
@@ -80,7 +82,9 @@ class TestRoyalRoadSource(unittest.TestCase):
         self.assertEqual(len(chapters), 2)
         self.assertEqual(chapters[0]['title'], "Chapter 1: The Beginning")
         self.assertEqual(chapters[0]['url'], "https://www.royalroad.com/fiction/123/chapter/1")
+        self.assertEqual(chapters[0]['published_date'].strftime('%Y-%m-%d'), '2023-01-01')
         self.assertEqual(chapters[1]['title'], "Chapter 2: The End")
+        self.assertIsNone(chapters[1]['published_date'])
 
     def test_get_chapter_content_removes_unwanted(self):
         html = """

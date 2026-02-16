@@ -2,6 +2,7 @@ import os
 import logging
 import json
 from typing import Optional, List, Dict
+from datetime import datetime, timedelta
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy.sql import func
 from core_logic import SourceManager
@@ -141,13 +142,16 @@ class StoryManager:
 
             for i, chapter_data in enumerate(chapters_data):
                 c_url = chapter_data['url']
+                published_date = chapter_data.get('published_date')
+
                 if c_url not in existing_urls:
                     new_chapter = Chapter(
                         title=chapter_data['title'],
                         source_url=c_url,
                         story_id=story.id,
                         index=i + 1,
-                        status='pending'
+                        status='pending',
+                        published_date=published_date
                     )
                     session.add(new_chapter)
                     new_chapters_count += 1
@@ -156,6 +160,9 @@ class StoryManager:
                     existing_chap = existing_urls[c_url]
                     if existing_chap.index != i + 1:
                         existing_chap.index = i + 1
+                    # Update published_date if missing
+                    if not existing_chap.published_date and published_date:
+                        existing_chap.published_date = published_date
 
             story.last_checked = func.now()
             if new_chapters_count > 0:
@@ -293,16 +300,36 @@ class StoryManager:
 
                     new_chapters_count = 0
                     for i, chap_data in enumerate(remote_chapters):
+                        published_date = chap_data.get('published_date')
+
                         if chap_data['url'] not in existing_chapter_urls:
                             new_chapter = Chapter(
                                 title=chap_data['title'],
                                 source_url=chap_data['url'],
                                 story_id=story.id,
                                 index=i + 1,
-                                status='pending'
+                                status='pending',
+                                published_date=published_date
                             )
                             session.add(new_chapter)
                             new_chapters_count += 1
+                        else:
+                             # Update date for existing chapters if missing
+                             # We need to find the chapter object.
+                             # optimizing by iterating existing is not efficient here as we only have URLs.
+                             # But we can query if needed. However, since we are iterating remote chapters,
+                             # we can match by URL if we had the objects.
+                             # For performance, maybe skip this or do a bulk update later?
+                             # Let's iterate story.chapters (which is loaded or lazy loaded)
+                             # Finding match:
+                             for ec in story.chapters:
+                                 if ec.source_url == chap_data['url']:
+                                     if not ec.published_date and published_date:
+                                         ec.published_date = published_date
+                                     # Update index
+                                     if ec.index != i + 1:
+                                         ec.index = i + 1
+                                     break
 
                     story.last_checked = func.now()
                     if new_chapters_count > 0:
@@ -465,16 +492,27 @@ class StoryManager:
 
             new_chapters_count = 0
             for i, chap_data in enumerate(remote_chapters):
+                published_date = chap_data.get('published_date')
                 if chap_data['url'] not in existing_chapter_urls:
                     new_chapter = Chapter(
                         title=chap_data['title'],
                         source_url=chap_data['url'],
                         story_id=story.id,
                         index=i + 1,
-                        status='pending'
+                        status='pending',
+                        published_date=published_date
                     )
                     session.add(new_chapter)
                     new_chapters_count += 1
+                else:
+                    # Update existing
+                     for ec in story.chapters:
+                         if ec.source_url == chap_data['url']:
+                             if not ec.published_date and published_date:
+                                 ec.published_date = published_date
+                             if ec.index != i + 1:
+                                 ec.index = i + 1
+                             break
 
             story.last_checked = func.now()
             if new_chapters_count > 0:
@@ -527,5 +565,119 @@ class StoryManager:
             logger.error(f"Error retrying chapters for story {story_id}: {e}")
             session.rollback()
             raise e
+        finally:
+            session.close()
+    def get_story_schedule(self, story_id: int):
+        """
+        Analyzes the release schedule for a story and predicts next chapter.
+        """
+        session = SessionLocal()
+        try:
+            story = session.query(Story).filter(Story.id == story_id).first()
+            if not story:
+                return None
+
+            chapters = session.query(Chapter).filter(
+                Chapter.story_id == story_id,
+                Chapter.published_date != None
+            ).order_by(Chapter.published_date).all()
+
+            if len(chapters) < 2:
+                return {
+                    'story_title': story.title,
+                    'prediction': None,
+                    'history': []
+                }
+
+            # Calculate intervals
+            dates = [c.published_date for c in chapters]
+            intervals = []
+            for i in range(1, len(dates)):
+                delta = dates[i] - dates[i-1]
+                intervals.append(delta.total_seconds())
+
+            avg_interval_seconds = sum(intervals) / len(intervals)
+
+            last_date = dates[-1]
+            next_date = last_date + timedelta(seconds=avg_interval_seconds)
+
+            return {
+                'story_title': story.title,
+                'prediction': next_date,
+                'avg_interval_days': avg_interval_seconds / 86400,
+                'history_count': len(chapters)
+            }
+        finally:
+            session.close()
+
+    def get_calendar_events(self, start=None, end=None):
+        """
+        Returns calendar events for all stories.
+        """
+        session = SessionLocal()
+        try:
+            stories = session.query(Story).filter(Story.is_monitored == True).all()
+            events = []
+
+            for story in stories:
+                # Get history
+                chapters = session.query(Chapter).filter(
+                    Chapter.story_id == story.id,
+                    Chapter.published_date != None
+                ).all()
+
+                for chap in chapters:
+                    events.append({
+                        'title': f"{story.title} - {chap.title}",
+                        'start': chap.published_date.isoformat(),
+                        'color': '#3788d8', # Blue for past
+                        'url': f"/story/{story.id}"
+                    })
+
+                # Prediction (we call internal method but need new session or pass session)
+                # To avoid session conflict, we can reimplement logic or use the same session if refactored.
+                # Here we just re-query chapters which is fine but slightly inefficient.
+                # Actually, calling self.get_story_schedule creates a NEW session. This is fine as long as we are not in a transaction that blocks.
+                # But since we are inside a session here, it might be better to close this one or make get_story_schedule accept a session.
+
+                # Let's reimplement lightweight prediction here or rely on the other method.
+                # Since we are using SQLite with check_same_thread=False, it should be OK.
+
+                # But wait, get_story_schedule opens a session.
+                # Let's just use the current session to query chapters for prediction.
+
+                sorted_dates = sorted([c.published_date for c in chapters if c.published_date])
+                if len(sorted_dates) >= 2:
+                     intervals = []
+                     for i in range(1, len(sorted_dates)):
+                         delta = sorted_dates[i] - sorted_dates[i-1]
+                         intervals.append(delta.total_seconds())
+
+                     avg = sum(intervals) / len(intervals)
+
+                     # Predict next 5 chapters
+                     last_date = sorted_dates[-1]
+                     now = datetime.now()
+
+                     # Start from the last known date
+                     next_prediction = last_date + timedelta(seconds=avg)
+
+                     # Find the next valid slot in the FUTURE
+                     # We keep adding the interval to the original cadence until we land in the future.
+                     # This preserves the rhythm (e.g. every 2 days) rather than resetting the clock to 'now'.
+                     while next_prediction < now:
+                         next_prediction += timedelta(seconds=avg)
+
+                     for i in range(5):
+                        events.append({
+                            'title': f"{story.title} - Predicted",
+                            'start': next_prediction.isoformat(),
+                            'color': '#28a745', # Green
+                            'url': f"/story/{story.id}",
+                            'allDay': True
+                        })
+                        next_prediction += timedelta(seconds=avg)
+
+            return events
         finally:
             session.close()
