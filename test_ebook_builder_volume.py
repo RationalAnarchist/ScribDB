@@ -27,6 +27,7 @@ class TestEbookBuilderVolume(unittest.TestCase):
         story.title = "Test Story"
         story.author = "Test Author"
         story.cover_path = "cover.jpg"
+        story.profile = None
 
         # Setup mock chapters
         chapter1 = MagicMock()
@@ -74,7 +75,8 @@ class TestEbookBuilderVolume(unittest.TestCase):
             "Test Author",
             expected_chapters,
             expected_filename,
-            "cover.jpg"
+            "cover.jpg",
+            css=None
         )
         mock_session.close.assert_called_once()
 

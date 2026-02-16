@@ -30,8 +30,10 @@ class Story(Base):
     rating = Column(String, nullable=True)
     language = Column(String, nullable=True)
     publication_status = Column(String, default='Unknown')
+    profile_id = Column(Integer, ForeignKey('ebook_profiles.id'), nullable=True)
 
     chapters = relationship("Chapter", back_populates="story", cascade="all, delete-orphan")
+    profile = relationship("EbookProfile")
 
     def __repr__(self):
         return f"<Story(title='{self.title}', author='{self.author}')>"
@@ -81,6 +83,18 @@ class Source(Base):
 
     def __repr__(self):
         return f"<Source(name='{self.name}', enabled={self.is_enabled})>"
+
+class EbookProfile(Base):
+    __tablename__ = 'ebook_profiles'
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String, unique=True, nullable=False)
+    description = Column(String, nullable=True)
+    css = Column(String, nullable=True)
+    output_format = Column(String, default='epub')
+
+    def __repr__(self):
+        return f"<EbookProfile(name='{self.name}')>"
 
 # Setup database
 # Priority: Environment Variable > Config file > Default
