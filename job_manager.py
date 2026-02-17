@@ -16,10 +16,12 @@ class JobManager:
         self.scheduler = BackgroundScheduler()
         self.story_manager = StoryManager()
         self.notification_manager = NotificationManager()
+        self.running = False
 
     def start(self):
         """Starts the scheduler with configured jobs."""
         init_db()
+        self.running = True
         self.update_jobs()
         self.scheduler.start()
 
@@ -36,6 +38,7 @@ class JobManager:
 
     def stop(self):
         """Stops the scheduler."""
+        self.running = False
         if self.scheduler.running:
             self.scheduler.shutdown()
         logger.info("JobManager stopped.")
@@ -105,6 +108,10 @@ class JobManager:
             session.close()
 
         for story_id in monitored_story_ids:
+            if not self.running:
+                logger.info("Stopping update check due to shutdown signal.")
+                break
+
             try:
                 self.story_manager.check_story_updates(story_id)
             except Exception as e:
@@ -116,7 +123,7 @@ class JobManager:
         """
         logger.info("Checking download queue for pending chapters...")
 
-        while True:
+        while self.running:
             session = SessionLocal()
             try:
                 # Query the database for the single oldest chapter where status == 'pending'
