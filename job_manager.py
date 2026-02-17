@@ -7,6 +7,7 @@ from database import SessionLocal, Story, Chapter, DownloadHistory, init_db
 from story_manager import StoryManager
 from notifications import NotificationManager
 from config import config_manager
+from library_manager import LibraryManager
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -16,6 +17,7 @@ class JobManager:
         self.scheduler = BackgroundScheduler()
         self.story_manager = StoryManager()
         self.notification_manager = NotificationManager()
+        self.library_manager = LibraryManager()
         self.running = False
 
     def start(self):
@@ -50,6 +52,22 @@ class JobManager:
         if self.scheduler.running:
             self.scheduler.shutdown()
         logger.info("JobManager stopped.")
+
+    def pause(self):
+        """Pauses the scheduler and stops running jobs."""
+        self.running = False
+        if self.scheduler.running:
+            self.scheduler.pause()
+        logger.info("JobManager paused.")
+
+    def resume(self):
+        """Resumes the scheduler."""
+        self.running = True
+        if self.scheduler.running:
+            self.scheduler.resume()
+        else:
+            self.start()
+        logger.info("JobManager resumed.")
 
     def update_jobs(self):
         """Updates or adds jobs based on current configuration."""
@@ -183,22 +201,16 @@ class JobManager:
 
                     content = provider.get_chapter_content(chapter.source_url)
 
-                    # Create safe directory name
-                    safe_story_title = "".join([c for c in story.title if c.isalpha() or c.isdigit() or c==' ']).rstrip().replace(' ', '_')
-                    story_dir = os.path.join(config_manager.get('download_path'), f"{story.id}_{safe_story_title}")
-                    os.makedirs(story_dir, exist_ok=True)
-
-                    # Create safe filename
-                    safe_chapter_title = "".join([c for c in chapter.title if c.isalpha() or c.isdigit() or c==' ']).rstrip().replace(' ', '_')
-                    filename = f"{chapter.id}_{safe_chapter_title}.html"
-                    filepath = os.path.join(story_dir, filename)
+                    # Use LibraryManager for path
+                    filepath = self.library_manager.get_chapter_absolute_path(story, chapter)
+                    self.library_manager.ensure_directories(filepath.parent)
 
                     # Write file to disk
                     with open(filepath, 'w', encoding='utf-8') as f:
                         f.write(content)
 
                     # The Update: Once the file is written to disk, update the status from pending to downloaded.
-                    chapter.local_path = filepath
+                    chapter.local_path = str(filepath)
                     chapter.is_downloaded = True
                     chapter.status = 'downloaded'
 
@@ -206,7 +218,7 @@ class JobManager:
                         chapter_id=chapter.id,
                         story_id=story.id,
                         status='downloaded',
-                        details=f"Downloaded successfully to {filename}"
+                        details=f"Downloaded successfully to {os.path.basename(filepath)}"
                     )
                     session.add(history)
 

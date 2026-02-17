@@ -853,13 +853,22 @@ async def check_migration(db: Session = Depends(get_db)):
 @app.post("/api/migration/start")
 def start_migration(db: Session = Depends(get_db)):
     """Start library migration."""
-    stories = db.query(Story).all()
-    lm = LibraryManager()
-    success = 0
-    total = len(stories)
+    try:
+        # Pause background jobs to prevent conflicts
+        if job_manager:
+            job_manager.pause()
 
-    for story in stories:
-        if lm.migrate_story(db, story):
-            success += 1
+        stories = db.query(Story).all()
+        lm = LibraryManager()
+        success = 0
+        total = len(stories)
 
-    return {"message": f"Migrated {success}/{total} stories successfully."}
+        for story in stories:
+            if lm.migrate_story(db, story):
+                success += 1
+
+        return {"message": f"Migrated {success}/{total} stories successfully."}
+    finally:
+        # Resume background jobs
+        if job_manager:
+            job_manager.resume()
