@@ -21,7 +21,7 @@ class TestEbookBuilderVolume(unittest.TestCase):
         # Setup mock config
         mock_config_manager.get.side_effect = lambda key, default=None: {
             'library_path': 'library',
-            'filename_pattern': '{Title} - Vol {Volume}'
+            'filename_pattern': '{Title} - {Volume}'
         }.get(key, default)
 
         # Setup mock session
@@ -41,6 +41,7 @@ class TestEbookBuilderVolume(unittest.TestCase):
         chapter1.title = "Chapter 1"
         chapter1.local_path = "path/to/1.html"
         chapter1.index = 1
+        chapter1.volume_title = None
 
         chapter2 = MagicMock()
         chapter2.title = "Chapter 2"
