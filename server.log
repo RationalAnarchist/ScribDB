@@ -1,0 +1,105 @@
+2026-02-16 17:19:33,680 - INFO - root - Logging configured. Level: DEBUG, File: logs/scrollarr.log
+Checking for database migrations...
+Running alembic upgrade head...
+2026-02-16 17:19:33,686 - INFO - alembic.runtime.migration - Context impl SQLiteImpl.
+2026-02-16 17:19:33,687 - INFO - alembic.runtime.migration - Will assume non-transactional DDL.
+Migrations completed.
+2026-02-16 17:19:33,724 - INFO - story_manager - Reloaded providers. 4 providers active.
+2026-02-16 17:19:33,725 - INFO - story_manager - StoryManager initialized and providers registered.
+2026-02-16 17:19:33,746 - DEBUG - tzlocal - /etc/timezone found, contents:
+ Etc/UTC
+
+2026-02-16 17:19:33,748 - DEBUG - tzlocal - /etc/localtime found
+2026-02-16 17:19:33,753 - DEBUG - tzlocal - 2 found:
+ {'/etc/timezone': 'Etc/UTC', '/etc/localtime is a symlink to': 'Etc/UTC'}
+Checking for database migrations...
+Running alembic upgrade head...
+2026-02-16 17:19:33,757 - INFO - alembic.runtime.migration - Context impl SQLiteImpl.
+2026-02-16 17:19:33,757 - INFO - alembic.runtime.migration - Will assume non-transactional DDL.
+Migrations completed.
+2026-02-16 17:19:33,767 - INFO - story_manager - Reloaded providers. 4 providers active.
+2026-02-16 17:19:33,767 - INFO - story_manager - StoryManager initialized and providers registered.
+INFO:     Started server process [5343]
+INFO:     Waiting for application startup.
+Checking for database migrations...
+Running alembic upgrade head...
+2026-02-16 17:19:33,876 - INFO - alembic.runtime.migration - Context impl SQLiteImpl.
+2026-02-16 17:19:33,876 - INFO - alembic.runtime.migration - Will assume non-transactional DDL.
+Migrations completed.
+2026-02-16 17:19:33,886 - INFO - apscheduler.scheduler - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-02-16 17:19:33,887 - INFO - apscheduler.scheduler - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-02-16 17:19:33,887 - INFO - apscheduler.scheduler - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-02-16 17:19:33,887 - INFO - job_manager - Jobs updated: check_updates (every 1h), download_queue (every 30.0s), check_metadata (every 12h)
+2026-02-16 17:19:33,888 - INFO - job_manager - Scheduled job: JobManager.check_for_updates (trigger: interval[1:00:00], pending)
+2026-02-16 17:19:33,888 - INFO - job_manager - Scheduled job: JobManager.process_download_queue (trigger: interval[0:00:30], pending)
+2026-02-16 17:19:33,888 - INFO - job_manager - Scheduled job: JobManager.check_missing_metadata (trigger: interval[12:00:00], pending)
+2026-02-16 17:19:33,888 - INFO - apscheduler.scheduler - Added job "JobManager.check_for_updates" to job store "default"
+2026-02-16 17:19:33,888 - INFO - apscheduler.scheduler - Added job "JobManager.process_download_queue" to job store "default"
+2026-02-16 17:19:33,888 - INFO - apscheduler.scheduler - Added job "JobManager.check_missing_metadata" to job store "default"
+2026-02-16 17:19:33,889 - INFO - apscheduler.scheduler - Scheduler started
+2026-02-16 17:19:33,889 - DEBUG - apscheduler.scheduler - Looking for jobs to run
+2026-02-16 17:19:33,890 - DEBUG - apscheduler.scheduler - Next wakeup is due at 2026-02-16 17:20:03.887128+00:00 (in 29.997292 seconds)
+2026-02-16 17:19:33,891 - INFO - apscheduler.scheduler - Added job "JobManager.check_missing_metadata" to job store "default"
+2026-02-16 17:19:33,891 - INFO - job_manager - JobManager started.
+INFO:     Application startup complete.
+2026-02-16 17:19:33,892 - DEBUG - apscheduler.scheduler - Looking for jobs to run
+2026-02-16 17:19:33,892 - DEBUG - apscheduler.scheduler - Next wakeup is due at 2026-02-16 17:19:43.890230+00:00 (in 9.997724 seconds)
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+2026-02-16 17:19:43,890 - DEBUG - apscheduler.scheduler - Looking for jobs to run
+2026-02-16 17:19:43,891 - INFO - apscheduler.executors.default - Running job "JobManager.check_missing_metadata (trigger: date[2026-02-16 17:19:43 UTC], next run at: 2026-02-16 17:19:43 UTC)" (scheduled at 2026-02-16 17:19:43.890230+00:00)
+2026-02-16 17:19:43,891 - INFO - job_manager - Running scheduled metadata check...
+2026-02-16 17:19:43,891 - INFO - story_manager - Checking for stories with missing metadata...
+2026-02-16 17:19:43,896 - INFO - apscheduler.scheduler - Removed job check_metadata_startup
+2026-02-16 17:19:43,897 - DEBUG - apscheduler.scheduler - Next wakeup is due at 2026-02-16 17:20:03.887128+00:00 (in 19.990149 seconds)
+2026-02-16 17:19:43,897 - INFO - story_manager - No stories found with missing metadata.
+2026-02-16 17:19:43,898 - INFO - apscheduler.executors.default - Job "JobManager.check_missing_metadata (trigger: date[2026-02-16 17:19:43 UTC], next run at: 2026-02-16 17:19:43 UTC)" executed successfully
+2026-02-16 17:20:03,887 - DEBUG - apscheduler.scheduler - Looking for jobs to run
+2026-02-16 17:20:03,888 - DEBUG - apscheduler.scheduler - Next wakeup is due at 2026-02-16 17:20:33.887128+00:00 (in 29.998996 seconds)
+2026-02-16 17:20:03,888 - INFO - apscheduler.executors.default - Running job "JobManager.process_download_queue (trigger: interval[0:00:30], next run at: 2026-02-16 17:20:33 UTC)" (scheduled at 2026-02-16 17:20:03.887128+00:00)
+2026-02-16 17:20:03,888 - INFO - job_manager - Checking download queue for pending chapters...
+2026-02-16 17:20:03,893 - DEBUG - job_manager - No pending chapters found.
+2026-02-16 17:20:03,893 - INFO - job_manager - Download queue empty or processing stopped.
+2026-02-16 17:20:03,894 - INFO - apscheduler.executors.default - Job "JobManager.process_download_queue (trigger: interval[0:00:30], next run at: 2026-02-16 17:20:33 UTC)" executed successfully
+2026-02-16 17:20:33,887 - DEBUG - apscheduler.scheduler - Looking for jobs to run
+2026-02-16 17:20:33,888 - DEBUG - apscheduler.scheduler - Next wakeup is due at 2026-02-16 17:21:03.887128+00:00 (in 29.998935 seconds)
+2026-02-16 17:20:33,888 - INFO - apscheduler.executors.default - Running job "JobManager.process_download_queue (trigger: interval[0:00:30], next run at: 2026-02-16 17:21:03 UTC)" (scheduled at 2026-02-16 17:20:33.887128+00:00)
+2026-02-16 17:20:33,888 - INFO - job_manager - Checking download queue for pending chapters...
+2026-02-16 17:20:33,891 - DEBUG - job_manager - No pending chapters found.
+2026-02-16 17:20:33,891 - INFO - job_manager - Download queue empty or processing stopped.
+2026-02-16 17:20:33,891 - INFO - apscheduler.executors.default - Job "JobManager.process_download_queue (trigger: interval[0:00:30], next run at: 2026-02-16 17:21:03 UTC)" executed successfully
+INFO:     127.0.0.1:44860 - "GET /add HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44860 - "GET /api/profiles HTTP/1.1" 200 OK
+2026-02-16 17:21:03,887 - DEBUG - apscheduler.scheduler - Looking for jobs to run
+2026-02-16 17:21:03,888 - DEBUG - apscheduler.scheduler - Next wakeup is due at 2026-02-16 17:21:33.887128+00:00 (in 29.998365 seconds)
+2026-02-16 17:21:03,889 - INFO - apscheduler.executors.default - Running job "JobManager.process_download_queue (trigger: interval[0:00:30], next run at: 2026-02-16 17:21:33 UTC)" (scheduled at 2026-02-16 17:21:03.887128+00:00)
+2026-02-16 17:21:03,890 - INFO - job_manager - Checking download queue for pending chapters...
+2026-02-16 17:21:03,893 - DEBUG - job_manager - No pending chapters found.
+2026-02-16 17:21:03,894 - INFO - job_manager - Download queue empty or processing stopped.
+2026-02-16 17:21:03,894 - INFO - apscheduler.executors.default - Job "JobManager.process_download_queue (trigger: interval[0:00:30], next run at: 2026-02-16 17:21:33 UTC)" executed successfully
+2026-02-16 17:21:33,887 - DEBUG - apscheduler.scheduler - Looking for jobs to run
+2026-02-16 17:21:33,888 - DEBUG - apscheduler.scheduler - Next wakeup is due at 2026-02-16 17:22:03.887128+00:00 (in 29.998720 seconds)
+2026-02-16 17:21:33,888 - INFO - apscheduler.executors.default - Running job "JobManager.process_download_queue (trigger: interval[0:00:30], next run at: 2026-02-16 17:22:03 UTC)" (scheduled at 2026-02-16 17:21:33.887128+00:00)
+2026-02-16 17:21:33,889 - INFO - job_manager - Checking download queue for pending chapters...
+2026-02-16 17:21:33,891 - DEBUG - job_manager - No pending chapters found.
+2026-02-16 17:21:33,891 - INFO - job_manager - Download queue empty or processing stopped.
+2026-02-16 17:21:33,891 - INFO - apscheduler.executors.default - Job "JobManager.process_download_queue (trigger: interval[0:00:30], next run at: 2026-02-16 17:22:03 UTC)" executed successfully
+INFO:     127.0.0.1:39698 - "GET /story/1 HTTP/1.1" 200 OK
+2026-02-16 17:22:03,887 - DEBUG - apscheduler.scheduler - Looking for jobs to run
+2026-02-16 17:22:03,888 - DEBUG - apscheduler.scheduler - Next wakeup is due at 2026-02-16 17:22:33.887128+00:00 (in 29.998849 seconds)
+2026-02-16 17:22:03,888 - INFO - apscheduler.executors.default - Running job "JobManager.process_download_queue (trigger: interval[0:00:30], next run at: 2026-02-16 17:22:33 UTC)" (scheduled at 2026-02-16 17:22:03.887128+00:00)
+2026-02-16 17:22:03,889 - INFO - job_manager - Checking download queue for pending chapters...
+2026-02-16 17:22:03,893 - INFO - job_manager - Processing chapter: Prologue (ID: 1) from story: Test Story with Volumes
+2026-02-16 17:22:03,894 - ERROR - job_manager - Failed to download chapter Prologue: No provider found for story URL: http://test.com/story
+2026-02-16 17:22:03,910 - INFO - job_manager - Processing chapter: Ch 1 (ID: 2) from story: Test Story with Volumes
+2026-02-16 17:22:03,910 - ERROR - job_manager - Failed to download chapter Ch 1: No provider found for story URL: http://test.com/story
+2026-02-16 17:22:03,918 - DEBUG - job_manager - No pending chapters found.
+2026-02-16 17:22:03,918 - INFO - job_manager - Download queue empty or processing stopped.
+2026-02-16 17:22:03,918 - INFO - apscheduler.executors.default - Job "JobManager.process_download_queue (trigger: interval[0:00:30], next run at: 2026-02-16 17:22:33 UTC)" executed successfully
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+2026-02-16 17:22:07,067 - INFO - apscheduler.scheduler - Scheduler has been shut down
+2026-02-16 17:22:07,067 - DEBUG - apscheduler.scheduler - Looking for jobs to run
+2026-02-16 17:22:07,068 - DEBUG - apscheduler.scheduler - No jobs; waiting until a job is added
+2026-02-16 17:22:07,068 - INFO - job_manager - JobManager stopped.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [5343]

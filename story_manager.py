@@ -8,7 +8,7 @@ from sqlalchemy.sql import func
 from core_logic import SourceManager
 from royalroad import RoyalRoadSource
 from ao3 import AO3Source
-from questionablequesting import QuestionableQuestingSource
+from questionablequesting import QuestionableQuestingSource, QuestionableQuestingAllPostsSource
 from database import Story, Chapter, Source, SessionLocal, init_db, engine, DownloadHistory
 from config import config_manager
 from notifications import NotificationManager
@@ -46,7 +46,8 @@ class StoryManager:
             providers_map = {
                 'royalroad': RoyalRoadSource,
                 'ao3': AO3Source,
-                'questionablequesting': QuestionableQuestingSource
+                'questionablequesting': QuestionableQuestingSource,
+                'questionablequesting_all': QuestionableQuestingAllPostsSource
             }
 
             registered_count = 0
@@ -94,15 +95,21 @@ class StoryManager:
 
         return results
 
-    def add_story(self, url: str, profile_id: Optional[int] = None) -> int:
+    def add_story(self, url: str, profile_id: Optional[int] = None, provider_key: Optional[str] = None) -> int:
         """
         Adds a story to the database from the given URL.
         Fetches metadata and chapter list.
         Returns the story ID.
         """
-        logger.info(f"Adding story from URL: {url}")
+        logger.info(f"Adding story from URL: {url} with provider {provider_key}")
 
-        provider = self.source_manager.get_provider_for_url(url)
+        provider = None
+        if provider_key:
+            provider = self.source_manager.get_provider_by_key(provider_key)
+
+        if not provider:
+            provider = self.source_manager.get_provider_for_url(url)
+
         if not provider:
             raise ValueError(f"No provider found for URL: {url}")
 
@@ -126,7 +133,8 @@ class StoryManager:
                     rating=metadata.get('rating'),
                     language=metadata.get('language'),
                     publication_status=metadata.get('publication_status', 'Unknown'),
-                    profile_id=profile_id if profile_id else 1 # Default to Standard (ID 1)
+                    profile_id=profile_id if profile_id else 1, # Default to Standard (ID 1)
+                    provider_name=provider_key
                 )
                 session.add(story)
                 session.flush()
@@ -148,6 +156,8 @@ class StoryManager:
             for i, chapter_data in enumerate(chapters_data):
                 c_url = chapter_data['url']
                 published_date = chapter_data.get('published_date')
+                volume_title = chapter_data.get('volume_title')
+                volume_number = chapter_data.get('volume_number', 1)
 
                 if c_url not in existing_urls:
                     new_chapter = Chapter(
@@ -156,7 +166,9 @@ class StoryManager:
                         story_id=story.id,
                         index=i + 1,
                         status='pending',
-                        published_date=published_date
+                        published_date=published_date,
+                        volume_title=volume_title,
+                        volume_number=volume_number
                     )
                     session.add(new_chapter)
                     new_chapters_count += 1
@@ -168,6 +180,11 @@ class StoryManager:
                     # Update published_date if missing
                     if not existing_chap.published_date and published_date:
                         existing_chap.published_date = published_date
+                    # Update volume info
+                    if volume_title and existing_chap.volume_title != volume_title:
+                         existing_chap.volume_title = volume_title
+                    if volume_number and existing_chap.volume_number != volume_number:
+                         existing_chap.volume_number = volume_number
 
             story.last_checked = func.now()
             if new_chapters_count > 0:
@@ -278,7 +295,13 @@ class StoryManager:
                 try:
                     logger.info(f"Checking updates for story: {story.title}")
 
-                    provider = self.source_manager.get_provider_for_url(story.source_url)
+                    provider = None
+                    if story.provider_name:
+                        provider = self.source_manager.get_provider_by_key(story.provider_name)
+
+                    if not provider:
+                        provider = self.source_manager.get_provider_for_url(story.source_url)
+
                     if not provider:
                         logger.warning(f"No provider found for story: {story.title} ({story.source_url})")
                         continue
@@ -306,6 +329,8 @@ class StoryManager:
                     new_chapters_count = 0
                     for i, chap_data in enumerate(remote_chapters):
                         published_date = chap_data.get('published_date')
+                        volume_title = chap_data.get('volume_title')
+                        volume_number = chap_data.get('volume_number', 1)
 
                         if chap_data['url'] not in existing_chapter_urls:
                             new_chapter = Chapter(
@@ -314,7 +339,9 @@ class StoryManager:
                                 story_id=story.id,
                                 index=i + 1,
                                 status='pending',
-                                published_date=published_date
+                                published_date=published_date,
+                                volume_title=volume_title,
+                                volume_number=volume_number
                             )
                             session.add(new_chapter)
                             new_chapters_count += 1
@@ -334,6 +361,10 @@ class StoryManager:
                                      # Update index
                                      if ec.index != i + 1:
                                          ec.index = i + 1
+                                     if volume_title and ec.volume_title != volume_title:
+                                         ec.volume_title = volume_title
+                                     if volume_number and ec.volume_number != volume_number:
+                                         ec.volume_number = volume_number
                                      break
 
                     story.last_checked = func.now()
@@ -459,7 +490,12 @@ class StoryManager:
             logger.info(f"Found {len(stories)} stories with missing metadata.")
 
             for story in stories:
-                provider = self.source_manager.get_provider_for_url(story.source_url)
+                provider = None
+                if story.provider_name:
+                    provider = self.source_manager.get_provider_by_key(story.provider_name)
+                if not provider:
+                    provider = self.source_manager.get_provider_for_url(story.source_url)
+
                 if provider:
                     logger.info(f"Updating metadata for: {story.title}")
                     self._update_metadata(story, provider)
@@ -482,7 +518,13 @@ class StoryManager:
 
             logger.info(f"Checking updates for story: {story.title}")
 
-            provider = self.source_manager.get_provider_for_url(story.source_url)
+            provider = None
+            if story.provider_name:
+                provider = self.source_manager.get_provider_by_key(story.provider_name)
+
+            if not provider:
+                provider = self.source_manager.get_provider_for_url(story.source_url)
+
             if not provider:
                 raise ValueError(f"No provider found for story: {story.title}")
 
@@ -498,6 +540,9 @@ class StoryManager:
             new_chapters_count = 0
             for i, chap_data in enumerate(remote_chapters):
                 published_date = chap_data.get('published_date')
+                volume_title = chap_data.get('volume_title')
+                volume_number = chap_data.get('volume_number', 1)
+
                 if chap_data['url'] not in existing_chapter_urls:
                     new_chapter = Chapter(
                         title=chap_data['title'],
@@ -505,7 +550,9 @@ class StoryManager:
                         story_id=story.id,
                         index=i + 1,
                         status='pending',
-                        published_date=published_date
+                        published_date=published_date,
+                        volume_title=volume_title,
+                        volume_number=volume_number
                     )
                     session.add(new_chapter)
                     new_chapters_count += 1
@@ -517,6 +564,10 @@ class StoryManager:
                                  ec.published_date = published_date
                              if ec.index != i + 1:
                                  ec.index = i + 1
+                             if volume_title and ec.volume_title != volume_title:
+                                 ec.volume_title = volume_title
+                             if volume_number and ec.volume_number != volume_number:
+                                 ec.volume_number = volume_number
                              break
 
             story.last_checked = func.now()

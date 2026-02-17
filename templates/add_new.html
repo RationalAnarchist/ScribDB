@@ -31,6 +31,14 @@
             <p class="text-xs text-gray-500 mt-2">Determines the format (EPUB, PDF) and style of the ebook.</p>
         </div>
 
+        <div class="mb-6 hidden" id="qq-options">
+             <label class="flex items-center space-x-3 cursor-pointer">
+                <input type="checkbox" id="use-all-posts" class="h-5 w-5 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500 transition duration-150 ease-in-out">
+                <span class="text-gray-300 font-medium">Use 'All Posts' Mode (Questionable Questing Only)</span>
+            </label>
+            <p class="text-xs text-gray-500 mt-1 ml-8">Fetches all posts by the author, treating threadmarks as volume headers. Useful for quests/stories without threadmarked chapters.</p>
+        </div>
+
         <div id="preview-area" class="hidden animate-fade-in">
             <div class="flex items-start gap-6 p-4 bg-gray-700/50 rounded-lg border border-gray-600">
                 <img id="preview-cover" src="" class="w-24 h-36 object-cover rounded shadow-md">
@@ -116,6 +124,12 @@
         async function addStory() {
             const url = document.getElementById('url-input').value;
             const profile_id = document.getElementById('profile-select').value;
+            const useAllPosts = document.getElementById('use-all-posts') ? document.getElementById('use-all-posts').checked : false;
+
+            let provider_key = null;
+            if (useAllPosts && url.includes('questionablequesting.com')) {
+                provider_key = 'questionablequesting_all';
+            }
 
             const btn = document.getElementById('add-btn');
             const originalText = btn.innerHTML;
@@ -126,10 +140,15 @@
             </svg> Adding...`;
 
             try {
+                const payload = {url: url, profile_id: parseInt(profile_id)};
+                if (provider_key) {
+                    payload.provider_key = provider_key;
+                }
+
                 const response = await fetch('/api/add', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({url: url, profile_id: parseInt(profile_id)})
+                    body: JSON.stringify(payload)
                 });
 
                 if (!response.ok) throw new Error('Failed to add story');
@@ -147,5 +166,16 @@
 
         // Initialize
         loadProfiles();
+
+        document.getElementById('url-input').addEventListener('input', function() {
+            const url = this.value;
+            const qqOptions = document.getElementById('qq-options');
+            if (url.includes('questionablequesting.com')) {
+                qqOptions.classList.remove('hidden');
+            } else {
+                qqOptions.classList.add('hidden');
+                document.getElementById('use-all-posts').checked = false;
+            }
+        });
     </script>
 {% endblock %}

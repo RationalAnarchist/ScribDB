@@ -53,3 +53,9 @@ class SourceManager:
             if provider.identify(url):
                 return provider
         return None
+
+    def get_provider_by_key(self, key: str) -> Optional[BaseSource]:
+        for provider in self.providers:
+            if getattr(provider, 'key', None) == key:
+                return provider
+        return None

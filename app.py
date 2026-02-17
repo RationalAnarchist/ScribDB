@@ -59,6 +59,7 @@ def get_db():
 class UrlRequest(BaseModel):
     url: str
     profile_id: Optional[int] = None
+    provider_key: Optional[str] = None
 
 class SettingsRequest(BaseModel):
     download_path: str
@@ -469,7 +470,7 @@ async def add_story(request: UrlRequest):
         raise HTTPException(status_code=500, detail="StoryManager not initialized")
 
     try:
-        story_id = story_manager.add_story(request.url, request.profile_id)
+        story_id = story_manager.add_story(request.url, request.profile_id, request.provider_key)
         return {"story_id": story_id, "message": "Story added successfully"}
     except Exception as e:
         logger.error(f"Add story error: {e}")
@@ -547,9 +548,15 @@ async def story_details(story_id: int, request: Request, db: Session = Depends(g
     chapters = db.query(Chapter).filter(Chapter.story_id == story_id).order_by(Chapter.volume_number, Chapter.index).all()
 
     # Identify available volumes
-    volumes = sorted(list(set(c.volume_number for c in chapters if c.volume_number is not None)))
-    if not volumes and chapters:
-        volumes = [1]
+    volume_numbers = sorted(list(set(c.volume_number for c in chapters if c.volume_number is not None)))
+    if not volume_numbers and chapters:
+        volume_numbers = [1]
+
+    volumes = []
+    for v_num in volume_numbers:
+        first_chap = next((c for c in chapters if c.volume_number == v_num), None)
+        title = first_chap.volume_title if first_chap and first_chap.volume_title else f"Volume {v_num}"
+        volumes.append({'number': v_num, 'title': title})
 
     # Get all profiles
     profiles = db.query(EbookProfile).all()

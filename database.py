@@ -31,6 +31,7 @@ class Story(Base):
     language = Column(String, nullable=True)
     publication_status = Column(String, default='Unknown')
     profile_id = Column(Integer, ForeignKey('ebook_profiles.id'), nullable=True)
+    provider_name = Column(String, nullable=True)
 
     chapters = relationship("Chapter", back_populates="story", cascade="all, delete-orphan")
     profile = relationship("EbookProfile")
@@ -48,6 +49,7 @@ class Chapter(Base):
     local_path = Column(String, nullable=True)
     is_downloaded = Column(Boolean, default=False)
     volume_number = Column(Integer, default=1)
+    volume_title = Column(String, nullable=True)
     index = Column(Integer, nullable=True)
     status = Column(String, default='pending')
     published_date = Column(DateTime, nullable=True)
