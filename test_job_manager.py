@@ -19,6 +19,10 @@ class TestJobManager(unittest.TestCase):
         self.session_patcher = patch('job_manager.SessionLocal', return_value=self.session_mock)
         self.session_patcher.start()
 
+        # Patch database.SessionLocal for EbookBuilder
+        self.db_session_patcher = patch('database.SessionLocal', return_value=self.session_mock)
+        self.db_session_patcher.start()
+
         # Patch init_db
         self.init_db_patcher = patch('job_manager.init_db')
         self.init_db_patcher.start()
@@ -39,6 +43,7 @@ class TestJobManager(unittest.TestCase):
 
     def tearDown(self):
         self.session_patcher.stop()
+        self.db_session_patcher.stop()
         self.init_db_patcher.stop()
         self.config_patcher.stop()
         self.scheduler_patcher.stop()
@@ -50,6 +55,7 @@ class TestJobManager(unittest.TestCase):
     def test_check_for_updates_monitored_story_with_updates(self, MockStoryManager):
         # Setup JobManager
         jm = JobManager()
+        jm.running = True
         # Ensure the mocked StoryManager is used
         jm.story_manager = MockStoryManager.return_value
 
@@ -67,6 +73,7 @@ class TestJobManager(unittest.TestCase):
     @patch('job_manager.StoryManager')
     def test_check_for_updates_monitored_story_no_updates(self, MockStoryManager):
         jm = JobManager()
+        jm.running = True
         jm.story_manager = MockStoryManager.return_value
 
         # Setup data
@@ -81,6 +88,7 @@ class TestJobManager(unittest.TestCase):
     @patch('job_manager.StoryManager')
     def test_check_for_updates_not_monitored_story(self, MockStoryManager):
         jm = JobManager()
+        jm.running = True
         jm.story_manager = MockStoryManager.return_value
 
         story = Story(title="Test Story", author="Author", source_url="http://example.com/story", is_monitored=False)
@@ -96,6 +104,7 @@ class TestJobManager(unittest.TestCase):
     @patch('os.makedirs')
     def test_process_download_queue(self, mock_makedirs, mock_file, MockStoryManager):
         jm = JobManager()
+        jm.running = True
         jm.story_manager = MockStoryManager.return_value
 
         # Setup data
