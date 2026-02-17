@@ -133,7 +133,7 @@ def run_migrations():
     print("Checking for database migrations...")
 
     # Locate alembic.ini
-    alembic_ini_path = os.path.join(os.getcwd(), "alembic.ini")
+    alembic_ini_path = os.path.join(os.getcwd(), "config", "alembic.ini")
     if not os.path.exists(alembic_ini_path):
         print(f"Warning: alembic.ini not found at {alembic_ini_path}. Skipping migrations.")
         return

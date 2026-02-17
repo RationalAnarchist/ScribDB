@@ -49,3 +49,13 @@ This document outlines the roadmap for evolving Scrollarr into a full-featured "
     2.  Implement file scanner/uploader.
     3.  Use `ebooklib` to extract metadata (Title, Author).
     4.  Match against Providers to resume monitoring.
+
+### Refactoring & Cleanup
+- **Goal:** Improve code organization, maintainability, and usability.
+- **Suggestions:**
+    -   **Modularization:** Move core logic (`app.py`, `database.py`, `models.py`) into a dedicated package (e.g., `src/` or `scrollarr/`).
+    -   **Configuration:** Centralize configuration loading and consider using environment variables more extensively.
+    -   **Dependency Management:** Migrate from `requirements.txt` to `pyproject.toml` or `poetry` for better dependency resolution and dev/prod separation.
+    -   **Testing:** Expand unit test coverage and organize tests into a more structured hierarchy.
+    -   **Documentation:** Generate API documentation and improve the README.
+    -   **Frontend:** Separate frontend assets (templates/static) from backend logic more clearly.
