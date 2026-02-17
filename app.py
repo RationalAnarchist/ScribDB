@@ -552,11 +552,35 @@ async def story_details(story_id: int, request: Request, db: Session = Depends(g
     if not volume_numbers and chapters:
         volume_numbers = [1]
 
-    volumes = []
-    for v_num in volume_numbers:
-        first_chap = next((c for c in chapters if c.volume_number == v_num), None)
-        title = first_chap.volume_title if first_chap and first_chap.volume_title else f"Volume {v_num}"
-        volumes.append({'number': v_num, 'title': title})
+    # Group chapters by volume
+    grouped_volumes = {}
+    for chapter in chapters:
+        v_num = chapter.volume_number if chapter.volume_number is not None else 1
+        if v_num not in grouped_volumes:
+            grouped_volumes[v_num] = {
+                'number': v_num,
+                'title': chapter.volume_title or f"Volume {v_num}",
+                'chapters': []
+            }
+        # Update title if it was missing but found later (though usually consistent within volume)
+        if not grouped_volumes[v_num]['title'] or grouped_volumes[v_num]['title'].startswith("Volume "):
+             if chapter.volume_title:
+                 grouped_volumes[v_num]['title'] = chapter.volume_title
+
+        grouped_volumes[v_num]['chapters'].append(chapter)
+
+    # Sort volumes
+    volumes = sorted(grouped_volumes.values(), key=lambda x: x['number'])
+
+    # Sort chapters within volumes
+    for vol in volumes:
+        vol['chapters'].sort(key=lambda c: c.index if c.index is not None else 0)
+
+    stats = {
+        'total_volumes': len(volumes),
+        'total_chapters': len(chapters),
+        'downloaded_chapters': sum(1 for c in chapters if c.status == 'downloaded')
+    }
 
     # Get all profiles
     profiles = db.query(EbookProfile).all()
@@ -566,6 +590,7 @@ async def story_details(story_id: int, request: Request, db: Session = Depends(g
         "story": story,
         "chapters": chapters,
         "volumes": volumes,
+        "stats": stats,
         "profiles": profiles
     })
 
