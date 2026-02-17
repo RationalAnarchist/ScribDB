@@ -34,6 +34,14 @@ class JobManager:
             id='check_metadata_startup'
         )
 
+        # Schedule immediate run of updates check on startup
+        self.scheduler.add_job(
+            self.check_for_updates,
+            'date',
+            run_date=datetime.now() + timedelta(seconds=20),
+            id='check_updates_startup'
+        )
+
         logger.info("JobManager started.")
 
     def stop(self):
@@ -126,9 +134,38 @@ class JobManager:
         while self.running:
             session = SessionLocal()
             try:
-                # Query the database for the single oldest chapter where status == 'pending'
-                # Use with_for_update() to lock the row if possible
-                chapter = session.query(Chapter).filter(Chapter.status == 'pending').order_by(Chapter.id.asc()).with_for_update().first()
+                # Prioritize stories with fewer pending chapters
+                # 1. Count pending chapters per story
+                subquery = (
+                    session.query(Chapter.story_id, func.count(Chapter.id).label('pending_count'))
+                    .filter(Chapter.status == 'pending')
+                    .group_by(Chapter.story_id)
+                    .subquery()
+                )
+
+                # 2. Find the story with the fewest pending chapters
+                best_story_row = (
+                    session.query(subquery.c.story_id)
+                    .order_by(subquery.c.pending_count.asc())
+                    .first()
+                )
+
+                chapter = None
+                if best_story_row:
+                    # 3. Get the oldest pending chapter for that story
+                    chapter = (
+                        session.query(Chapter)
+                        .filter(Chapter.story_id == best_story_row.story_id, Chapter.status == 'pending')
+                        .order_by(Chapter.id.asc())
+                        .with_for_update()
+                        .first()
+                    )
+
+                # Fallback to global oldest if priority selection fails (e.g. race condition)
+                if not chapter:
+                    # Query the database for the single oldest chapter where status == 'pending'
+                    # Use with_for_update() to lock the row if possible
+                    chapter = session.query(Chapter).filter(Chapter.status == 'pending').order_by(Chapter.id.asc()).with_for_update().first()
 
                 if not chapter:
                     # No more chapters
