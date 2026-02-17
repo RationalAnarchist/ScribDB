@@ -6,7 +6,7 @@ logger = logging.getLogger(__name__)
 
 class ConfigManager:
     _instance = None
-    CONFIG_FILE = "config.json"
+    CONFIG_FILE = "config/config.json"
     DEFAULT_CONFIG = {
         "download_path": "saved_stories",
         "min_delay": 2.0,
