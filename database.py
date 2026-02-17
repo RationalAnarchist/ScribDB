@@ -32,6 +32,7 @@ class Story(Base):
     publication_status = Column(String, default='Unknown')
     profile_id = Column(Integer, ForeignKey('ebook_profiles.id'), nullable=True)
     provider_name = Column(String, nullable=True)
+    notify_on_new_chapter = Column(Boolean, default=True)
 
     chapters = relationship("Chapter", back_populates="story", cascade="all, delete-orphan")
     profile = relationship("EbookProfile")

@@ -538,6 +538,17 @@ async def delete_story(story_id: int, delete_content: bool = False):
         logger.error(f"Delete error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/api/story/{story_id}/toggle-notifications")
+async def toggle_story_notifications(story_id: int, db: Session = Depends(get_db)):
+    """Toggle notification settings for a story."""
+    story = db.query(Story).filter(Story.id == story_id).first()
+    if not story:
+        raise HTTPException(status_code=404, detail="Story not found")
+
+    story.notify_on_new_chapter = not story.notify_on_new_chapter
+    db.commit()
+    return {"message": "Notifications updated", "notify_on_new_chapter": story.notify_on_new_chapter}
+
 @app.get("/story/{story_id}", response_class=HTMLResponse)
 async def story_details(story_id: int, request: Request, db: Session = Depends(get_db)):
     """Render story details page."""

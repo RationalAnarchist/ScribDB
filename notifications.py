@@ -6,7 +6,7 @@ from email.mime.application import MIMEApplication
 import requests
 import json
 import os
-from database import SessionLocal, NotificationSettings
+from database import SessionLocal, NotificationSettings, Story
 from config import config_manager
 from typing import Dict, Any, List
 
@@ -105,6 +105,20 @@ class NotificationManager:
             logger.error(f"Failed to send webhook to {target}: {e}")
 
     def dispatch(self, event: str, context: Dict[str, Any]):
+        # Check if story specific notifications are disabled
+        story_id = context.get('story_id')
+        if story_id and event in ['on_new_chapters', 'on_download']:
+            session = SessionLocal()
+            try:
+                story = session.query(Story).filter(Story.id == story_id).first()
+                if story and not story.notify_on_new_chapter:
+                    logger.info(f"Skipping notification for story {story_id} (notifications disabled).")
+                    return
+            except Exception as e:
+                logger.error(f"Error checking story notification settings: {e}")
+            finally:
+                session.close()
+
         settings = self._get_enabled_notifications(event)
         if not settings:
             return
