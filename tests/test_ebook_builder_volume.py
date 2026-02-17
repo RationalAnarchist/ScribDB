@@ -3,8 +3,8 @@ from unittest.mock import MagicMock, patch, mock_open
 import os
 import sys
 
-# Ensure the current directory is in sys.path so we can import modules
-sys.path.append(os.getcwd())
+# Ensure the parent directory is in sys.path
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from ebook_builder import EbookBuilder
 

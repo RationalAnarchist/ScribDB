@@ -1,7 +1,10 @@
 import unittest
+import sys
+import os
 from unittest.mock import MagicMock, patch
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from database import Base, Story, Chapter, sync_story
 
 class TestDatabase(unittest.TestCase):

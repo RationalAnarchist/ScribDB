@@ -1,6 +1,9 @@
 import unittest
+import sys
+import os
 from unittest.mock import MagicMock
-from royalroad import RoyalRoadSource
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from sources.royalroad import RoyalRoadSource
 import json
 
 class TestRoyalRoadSource(unittest.TestCase):

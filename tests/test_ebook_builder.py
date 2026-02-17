@@ -1,5 +1,7 @@
 import os
+import sys
 import unittest
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from ebook_builder import EbookBuilder
 
 class TestEbookBuilder(unittest.TestCase):

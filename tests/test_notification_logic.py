@@ -1,5 +1,7 @@
 import os
 import unittest
+import sys
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from unittest.mock import MagicMock, patch
 from database import Story, Base, NotificationSettings
 from sqlalchemy import create_engine

@@ -5,7 +5,7 @@ from sqlalchemy.orm import declarative_base, relationship, sessionmaker, Session
 from sqlalchemy.sql import func
 from typing import Optional
 from core_logic import SourceManager
-from royalroad import RoyalRoadSource
+from sources.royalroad import RoyalRoadSource
 from config import config_manager
 import alembic.config
 import alembic.command

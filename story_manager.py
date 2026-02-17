@@ -6,9 +6,9 @@ from datetime import datetime, timedelta
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy.sql import func
 from core_logic import SourceManager
-from royalroad import RoyalRoadSource
-from ao3 import AO3Source
-from questionablequesting import QuestionableQuestingSource, QuestionableQuestingAllPostsSource
+from sources.royalroad import RoyalRoadSource
+from sources.ao3 import AO3Source
+from sources.questionablequesting import QuestionableQuestingSource, QuestionableQuestingAllPostsSource
 from database import Story, Chapter, Source, SessionLocal, init_db, engine, DownloadHistory
 from config import config_manager
 from notifications import NotificationManager
@@ -34,13 +34,15 @@ class StoryManager:
 
     def reload_providers(self):
         """
-        Reloads providers based on enabled sources in the database.
+        Reloads providers from the database.
+        Registers ALL providers but marks them as enabled/disabled.
         """
         self.source_manager.clear_providers()
         session = SessionLocal()
         try:
-            enabled_sources = session.query(Source).filter(Source.is_enabled == True).all()
-            enabled_map = {s.key: s for s in enabled_sources}
+            # Fetch all sources to get enabled state and config
+            all_sources = session.query(Source).all()
+            sources_map = {s.key: s for s in all_sources}
 
             # Map keys to provider classes
             providers_map = {
@@ -52,11 +54,14 @@ class StoryManager:
 
             registered_count = 0
             for key, provider_class in providers_map.items():
-                if key in enabled_map:
-                    source_record = enabled_map[key]
-                    provider_instance = provider_class()
-                    # Inject key for identification
-                    provider_instance.key = key
+                provider_instance = provider_class()
+                # Inject key for identification
+                provider_instance.key = key
+
+                # Determine enabled state and config
+                if key in sources_map:
+                    source_record = sources_map[key]
+                    provider_instance.is_enabled = source_record.is_enabled
 
                     # Apply config
                     if source_record.config:
@@ -65,11 +70,14 @@ class StoryManager:
                             provider_instance.set_config(config_data)
                         except Exception as e:
                             logger.error(f"Failed to load config for {key}: {e}")
+                else:
+                    # Should not happen if DB is seeded correctly
+                    provider_instance.is_enabled = True
 
-                    self.source_manager.register_provider(provider_instance)
-                    registered_count += 1
+                self.source_manager.register_provider(provider_instance)
+                registered_count += 1
 
-            logger.info(f"Reloaded providers. {registered_count} providers active.")
+            logger.info(f"Reloaded providers. {registered_count} providers registered.")
         except Exception as e:
             logger.error(f"Error reloading providers: {e}")
         finally:
@@ -81,6 +89,10 @@ class StoryManager:
         """
         results = []
         for provider in self.source_manager.providers:
+            # Check enabled state
+            if not getattr(provider, 'is_enabled', True):
+                continue
+
             # Check if this provider matches the requested key
             p_key = getattr(provider, 'key', None)
             if provider_key and p_key and p_key != provider_key:
