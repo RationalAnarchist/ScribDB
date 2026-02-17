@@ -575,7 +575,9 @@ async def story_details(story_id: int, request: Request, db: Session = Depends(g
             grouped_volumes[v_num] = {
                 'number': v_num,
                 'title': chapter.volume_title or f"Volume {v_num}",
-                'chapters': []
+                'chapters': [],
+                'downloaded_count': 0,
+                'failed_count': 0
             }
         # Update title if it was missing but found later (though usually consistent within volume)
         if not grouped_volumes[v_num]['title'] or grouped_volumes[v_num]['title'].startswith("Volume "):
@@ -583,6 +585,12 @@ async def story_details(story_id: int, request: Request, db: Session = Depends(g
                  grouped_volumes[v_num]['title'] = chapter.volume_title
 
         grouped_volumes[v_num]['chapters'].append(chapter)
+
+        # Update volume stats
+        if chapter.status == 'downloaded':
+            grouped_volumes[v_num]['downloaded_count'] += 1
+        elif chapter.status == 'failed':
+            grouped_volumes[v_num]['failed_count'] += 1
 
     # Sort volumes
     volumes = sorted(grouped_volumes.values(), key=lambda x: x['number'])

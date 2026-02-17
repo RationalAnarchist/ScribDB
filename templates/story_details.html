@@ -137,7 +137,12 @@
                             <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
                         </svg>
                         <span class="text-lg font-semibold text-gray-200">{{ vol.title }}</span>
-                        <span class="text-xs text-gray-400 bg-gray-800 px-2 py-1 rounded-full border border-gray-600">{{ vol.chapters|length }} chapters</span>
+                        <span class="text-xs text-gray-400 bg-gray-800 px-2 py-1 rounded-full border border-gray-600">
+                            {{ vol.downloaded_count }} / {{ vol.chapters|length }}
+                            {% if vol.failed_count > 0 %}
+                            <span class="text-red-400 font-bold ml-1">({{ vol.failed_count }} Failed)</span>
+                            {% endif %}
+                        </span>
                     </div>
 
                     <button onclick="event.stopPropagation(); compileVolume(this, {{ story.id }}, {{ vol.number }})" class="bg-green-600 hover:bg-green-700 text-white text-sm font-bold py-1.5 px-4 rounded transition-colors flex items-center gap-1 shadow-sm">
