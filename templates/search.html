@@ -137,15 +137,24 @@
 
     async function addStory(url, btn) {
         const profile_id = document.getElementById('profile-select-search').value;
+        const provider_key = document.getElementById('provider-select').value;
         const originalText = btn.innerHTML;
         btn.disabled = true;
         btn.innerHTML = 'Adding...';
 
         try {
+            const payload = {
+                url: url,
+                profile_id: parseInt(profile_id)
+            };
+            if (provider_key) {
+                payload.provider_key = provider_key;
+            }
+
             const response = await fetch('/api/add', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({url: url, profile_id: parseInt(profile_id)})
+                body: JSON.stringify(payload)
             });
 
             if (!response.ok) throw new Error('Failed to add story');
