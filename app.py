@@ -166,12 +166,14 @@ async def read_root(request: Request, db: Session = Depends(get_db)):
     for story in stories:
         total = len(story.chapters)
         downloaded = sum(1 for c in story.chapters if c.status == 'downloaded')
+        failed = sum(1 for c in story.chapters if c.status == 'failed')
         progress = (downloaded / total * 100) if total > 0 else 0
 
         # Add attributes for the template
         story.progress = round(progress, 1)
         story.total_chapters = total
         story.downloaded_chapters = downloaded
+        story.failed_chapters = failed
         stories_with_progress.append(story)
 
     return templates.TemplateResponse("index.html", {"request": request, "stories": stories_with_progress})
@@ -484,6 +486,7 @@ async def get_progress(db: Session = Depends(get_db)):
     for story in stories:
         total = len(story.chapters)
         downloaded = sum(1 for c in story.chapters if c.status == 'downloaded')
+        failed = sum(1 for c in story.chapters if c.status == 'failed')
         progress = (downloaded / total * 100) if total > 0 else 0
 
         result.append({
@@ -491,6 +494,7 @@ async def get_progress(db: Session = Depends(get_db)):
             "title": story.title,
             "progress": round(progress, 1),
             "downloaded": downloaded,
+            "failed": failed,
             "total": total,
             "status": story.status
         })
@@ -571,7 +575,9 @@ async def story_details(story_id: int, request: Request, db: Session = Depends(g
             grouped_volumes[v_num] = {
                 'number': v_num,
                 'title': chapter.volume_title or f"Volume {v_num}",
-                'chapters': []
+                'chapters': [],
+                'downloaded_count': 0,
+                'failed_count': 0
             }
         # Update title if it was missing but found later (though usually consistent within volume)
         if not grouped_volumes[v_num]['title'] or grouped_volumes[v_num]['title'].startswith("Volume "):
@@ -579,6 +585,12 @@ async def story_details(story_id: int, request: Request, db: Session = Depends(g
                  grouped_volumes[v_num]['title'] = chapter.volume_title
 
         grouped_volumes[v_num]['chapters'].append(chapter)
+
+        # Update volume stats
+        if chapter.status == 'downloaded':
+            grouped_volumes[v_num]['downloaded_count'] += 1
+        elif chapter.status == 'failed':
+            grouped_volumes[v_num]['failed_count'] += 1
 
     # Sort volumes
     volumes = sorted(grouped_volumes.values(), key=lambda x: x['number'])
@@ -590,7 +602,8 @@ async def story_details(story_id: int, request: Request, db: Session = Depends(g
     stats = {
         'total_volumes': len(volumes),
         'total_chapters': len(chapters),
-        'downloaded_chapters': sum(1 for c in chapters if c.status == 'downloaded')
+        'downloaded_chapters': sum(1 for c in chapters if c.status == 'downloaded'),
+        'failed_chapters': sum(1 for c in chapters if c.status == 'failed')
     }
 
     # Get all profiles

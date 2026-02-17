@@ -98,6 +98,9 @@
                     </td>
                     <td class="px-6 py-4 text-center text-sm">
                         <span id="list-chapter-count-{{ story.id }}">{{ story.downloaded_chapters }} / {{ story.total_chapters }}</span>
+                        <div id="list-chapter-failed-{{ story.id }}" class="text-xs text-red-400 font-medium {{ 'hidden' if story.failed_chapters == 0 else '' }}">
+                            {% if story.failed_chapters > 0 %}({{ story.failed_chapters }} Failed){% endif %}
+                        </div>
                     </td>
                     <td class="px-6 py-4 text-center">
                         <span id="list-status-{{ story.id }}" class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset {{ 'bg-green-400/10 text-green-400 ring-green-400/20' if story.status == 'Monitoring' else 'bg-gray-400/10 text-gray-400 ring-gray-400/20' }}">
@@ -226,11 +229,21 @@
                     const listBar = document.getElementById(`list-progress-bar-${story.id}`);
                     const listText = document.getElementById(`list-progress-text-${story.id}`);
                     const listCount = document.getElementById(`list-chapter-count-${story.id}`);
+                    const listFailed = document.getElementById(`list-chapter-failed-${story.id}`);
                     const listStatus = document.getElementById(`list-status-${story.id}`);
 
                     if (listBar) listBar.style.width = `${story.progress}%`;
                     if (listText) listText.innerText = `${story.progress}%`;
                     if (listCount) listCount.innerText = `${story.downloaded} / ${story.total}`;
+
+                    if (listFailed) {
+                        if (story.failed > 0) {
+                            listFailed.innerText = `(${story.failed} Failed)`;
+                            listFailed.classList.remove('hidden');
+                        } else {
+                            listFailed.classList.add('hidden');
+                        }
+                    }
 
                     if (listStatus) {
                         listStatus.innerText = story.status;
