@@ -15,10 +15,7 @@
             </div>
             <select id="provider-select" class="p-3 rounded bg-gray-700 text-white border border-gray-600 focus:outline-none focus:border-blue-500 transition-colors">
                 <option value="">All Providers</option>
-                <option value="royalroad">Royal Road</option>
-                <option value="ao3">Archive of Our Own</option>
-                <option value="questionablequesting">Questionable Questing</option>
-                <option value="questionablequesting_all">Questionable Questing (All Posts)</option>
+                <!-- Providers loaded via JS -->
             </select>
             <select id="profile-select-search" class="p-3 rounded bg-gray-700 text-white border border-gray-600 focus:outline-none focus:border-blue-500 transition-colors">
                 <!-- Profiles loaded via JS -->
@@ -169,7 +166,32 @@
         }
     }
 
+    async function loadProviders() {
+        try {
+            const res = await fetch('/api/sources');
+            const sources = await res.json();
+            const select = document.getElementById('provider-select');
+
+            // Clear existing options except first
+            while (select.options.length > 1) {
+                select.remove(1);
+            }
+
+            sources.forEach(s => {
+                if (s.is_enabled) {
+                    const opt = document.createElement('option');
+                    opt.value = s.key;
+                    opt.text = s.name;
+                    select.appendChild(opt);
+                }
+            });
+        } catch (e) {
+            console.error("Failed to load sources", e);
+        }
+    }
+
     // Initialize
     loadProfiles();
+    loadProviders();
 </script>
 {% endblock %}

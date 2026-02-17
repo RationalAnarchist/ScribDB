@@ -1,6 +1,9 @@
 import unittest
+import sys
+import os
 from unittest.mock import MagicMock
-from questionablequesting import QuestionableQuestingAllPostsSource
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from sources.questionablequesting import QuestionableQuestingAllPostsSource
 import re
 
 class TestQQAllPosts(unittest.TestCase):

@@ -10,4 +10,5 @@ venv/
 *.db
 *.epub
 saved_stories/
-logs/
+logs/*
+!logs/.gitkeep

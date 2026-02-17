@@ -1,6 +1,9 @@
 import unittest
+import sys
+import os
 from unittest.mock import MagicMock
-from ao3 import AO3Source
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from sources.ao3 import AO3Source
 from bs4 import BeautifulSoup
 
 class TestAO3Source(unittest.TestCase):

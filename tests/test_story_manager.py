@@ -1,7 +1,11 @@
 import os
+import sys
 
 # Set environment variable for test database
 os.environ['DATABASE_URL'] = 'sqlite:///test_library.db'
+
+# Add parent directory to path
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import unittest
 import shutil
