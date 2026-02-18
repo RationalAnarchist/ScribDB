@@ -261,7 +261,80 @@ class KemonoSource(BaseSource):
                 browser.close()
 
     def search(self, query: str) -> List[Dict]:
-        # Searching Kemono is tricky as it's by artist name or user ID.
-        # For now, return empty or implement basic search if API allows.
-        # Given constraints, returning empty is safe.
-        return []
+        """
+        Searches for artists on Kemono.
+        """
+        results = []
+        search_url = f"https://kemono.cr/artists?q={query}" # Default to .cr as it seems more stable
+
+        with self._get_playwright() as p:
+            browser = p.chromium.launch(headless=True)
+            page = browser.new_page()
+            try:
+                page.set_default_timeout(60000)
+                # print(f"Searching Kemono: {search_url}")
+                page.goto(search_url, wait_until="domcontentloaded")
+
+                # Wait for content or timeout
+                try:
+                    # Wait for results container or empty state
+                    page.wait_for_selector('.card-list__items', timeout=10000)
+                except:
+                    # Might be empty or slow
+                    pass
+
+                # Allow JS to render items
+                page.wait_for_timeout(2000)
+
+                html = page.content()
+                soup = BeautifulSoup(html, 'html.parser')
+
+                # Items are usually <a> tags inside .card-list__items
+                # Structure: <a href="/service/user/id" ...> ... <div class="user-card__name">Name</div> ... <div class="user-card__service">Service</div> ... </a>
+                items = soup.select('.card-list__items a')
+
+                for item in items:
+                    href = item.get('href')
+                    if not href:
+                        continue
+
+                    full_url = href
+                    if href.startswith('/'):
+                        full_url = f"https://kemono.cr{href}"
+
+                    name_div = item.select_one('.user-card__name')
+                    name = name_div.get_text(strip=True) if name_div else "Unknown"
+
+                    service_div = item.select_one('.user-card__service')
+                    service = service_div.get_text(strip=True) if service_div else "Unknown Service"
+
+                    # Cover/Avatar
+                    # <div class="user-card__header" style="background-image: url(...)">
+                    # or img inside? Inspecting usually shows background-image on header
+                    cover_url = None
+                    header_div = item.select_one('.user-card__header')
+                    if header_div and header_div.has_attr('style'):
+                        style = header_div['style']
+                        # Extract url('...')
+                        match = re.search(r"url\(['\"]?([^'\")]+)['\"]?\)", style)
+                        if match:
+                            src = match.group(1)
+                            if src.startswith('/'):
+                                cover_url = f"https://kemono.cr{src}"
+                            else:
+                                cover_url = src
+
+                    results.append({
+                        'title': name,
+                        'url': full_url,
+                        'author': service, # Using service as author field for identification
+                        'cover_url': cover_url,
+                        'provider': 'Kemono'
+                    })
+
+            except Exception as e:
+                print(f"Kemono search error: {e}")
+            finally:
+                browser.close()
+
+        return results
