@@ -90,6 +90,10 @@ class SettingsRequest(BaseModel):
     story_folder_format: str = "{Title}"
     chapter_file_format: str = "{Index} - {Title}"
     volume_folder_format: str = "Volume {Volume}"
+    single_chapter_name_format: str = "{Title} - {Index} - {Chapter}"
+    chapter_group_name_format: str = "{Title} - {StartChapter} to {EndChapter}"
+    volume_name_format: str = "{Title} - {Volume} - {VolName}"
+    full_story_name_format: str = "{Title} - Full story to {EndChapter}"
 
 class ProfileCreate(BaseModel):
     name: str
@@ -310,6 +314,11 @@ async def settings_page(request: Request):
     """Render the settings page."""
     return templates.TemplateResponse("settings.html", {"request": request})
 
+@app.get("/settings/naming", response_class=HTMLResponse)
+async def naming_settings_page(request: Request):
+    """Render the naming settings page."""
+    return templates.TemplateResponse("naming_settings.html", {"request": request})
+
 @app.get("/api-docs", response_class=HTMLResponse)
 async def api_docs_page(request: Request):
     """Render the API documentation page."""
@@ -440,6 +449,10 @@ async def update_settings(settings: SettingsRequest):
         config_manager.set("story_folder_format", settings.story_folder_format)
         config_manager.set("chapter_file_format", settings.chapter_file_format)
         config_manager.set("volume_folder_format", settings.volume_folder_format)
+        config_manager.set("single_chapter_name_format", settings.single_chapter_name_format)
+        config_manager.set("chapter_group_name_format", settings.chapter_group_name_format)
+        config_manager.set("volume_name_format", settings.volume_name_format)
+        config_manager.set("full_story_name_format", settings.full_story_name_format)
 
         # Update jobs with new settings
         if job_manager:

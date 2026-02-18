@@ -21,7 +21,11 @@ class ConfigManager:
         "story_folder_format": "{Title} ({Id})",
         "chapter_file_format": "{Index} - {Title}",
         "volume_folder_format": "Volume {Volume}",
-        "compiled_filename_pattern": "{Title} - {Volume}"
+        "compiled_filename_pattern": "{Title} - {Volume}",
+        "single_chapter_name_format": "{Title} - {Index} - {Chapter}",
+        "chapter_group_name_format": "{Title} - {StartChapter} to {EndChapter}",
+        "volume_name_format": "{Title} - {Volume} - {VolName}",
+        "full_story_name_format": "{Title} - Full story to {EndChapter}"
     }
 
     def __new__(cls):

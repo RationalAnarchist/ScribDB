@@ -19,36 +19,8 @@
                 <p class="text-xs text-gray-500 mt-2">Legacy setting. Use Library Path below.</p>
             </div>
 
-            <h2 class="text-xl font-bold mb-4 text-gray-200 mt-8">Library Organization</h2>
-            <div class="mb-4">
-                <label class="block text-gray-300 text-sm font-bold mb-2" for="library-path">Library Root Path</label>
-                <input type="text" id="library-path" name="library_path" class="w-full p-3 rounded bg-gray-700 text-white border border-gray-600 focus:outline-none focus:border-blue-500 transition-colors" placeholder="e.g. library">
-                <p class="text-xs text-gray-500 mt-2">The root directory for your library.</p>
-            </div>
-
-            <div class="grid grid-cols-2 gap-4 mb-4">
-                <div>
-                    <label class="block text-gray-300 text-sm font-bold mb-2" for="story-folder-format">Story Folder Format</label>
-                    <input type="text" id="story-folder-format" name="story_folder_format" class="w-full p-3 rounded bg-gray-700 text-white border border-gray-600 focus:outline-none focus:border-blue-500 transition-colors" placeholder="{Title}">
-                    <p class="text-xs text-gray-500 mt-2">Vars: {Title}, {Author}, {Id}</p>
-                </div>
-                <div>
-                    <label class="block text-gray-300 text-sm font-bold mb-2" for="volume-folder-format">Volume Folder Format</label>
-                    <input type="text" id="volume-folder-format" name="volume_folder_format" class="w-full p-3 rounded bg-gray-700 text-white border border-gray-600 focus:outline-none focus:border-blue-500 transition-colors" placeholder="Volume {Volume}">
-                    <p class="text-xs text-gray-500 mt-2">Vars: {Volume}, {Title}</p>
-                </div>
-            </div>
-
-            <div class="mb-4">
-                <label class="block text-gray-300 text-sm font-bold mb-2" for="chapter-file-format">Chapter File Format</label>
-                <input type="text" id="chapter-file-format" name="chapter_file_format" class="w-full p-3 rounded bg-gray-700 text-white border border-gray-600 focus:outline-none focus:border-blue-500 transition-colors" placeholder="{Index} - {Title}">
-                <p class="text-xs text-gray-500 mt-2">Vars: {Index}, {Title}, {Volume}</p>
-            </div>
-
-            <div class="mb-6">
-                <label class="block text-gray-300 text-sm font-bold mb-2" for="compiled-filename-pattern">Compiled Filename Format</label>
-                <input type="text" id="compiled-filename-pattern" name="compiled_filename_pattern" class="w-full p-3 rounded bg-gray-700 text-white border border-gray-600 focus:outline-none focus:border-blue-500 transition-colors" placeholder="{Title} - Vol {Volume}">
-                <p class="text-xs text-gray-500 mt-2">Vars: {Title}, {Author}, {Volume}</p>
+            <div class="mb-4 text-gray-400 text-sm italic">
+                <p>Naming settings have been moved to the <a href="/settings/naming" class="text-blue-400 hover:text-blue-300">Naming Settings</a> page.</p>
             </div>
 
             <h2 class="text-xl font-bold mb-4 text-gray-200 mt-8">Network & Politeness</h2>
@@ -111,30 +83,24 @@
 
 {% block scripts %}
     <script>
+        let fullSettings = {};
+
         async function loadSettings() {
             try {
                 const response = await fetch('/api/settings');
                 if (!response.ok) throw new Error('Failed to load settings');
-                const data = await response.json();
+                fullSettings = await response.json();
 
-                document.getElementById('download-path').value = data.download_path || '';
-                document.getElementById('library-path').value = data.library_path || 'library';
+                document.getElementById('download-path').value = fullSettings.download_path || '';
 
-                // Map old filename_pattern if compiled_filename_pattern missing (handled by backend but safe to check)
-                document.getElementById('compiled-filename-pattern').value = data.compiled_filename_pattern || data.filename_pattern || '{Title} - Vol {Volume}';
-
-                document.getElementById('story-folder-format').value = data.story_folder_format || '{Title}';
-                document.getElementById('chapter-file-format').value = data.chapter_file_format || '{Index} - {Title}';
-                document.getElementById('volume-folder-format').value = data.volume_folder_format || 'Volume {Volume}';
-
-                document.getElementById('min-delay').value = data.min_delay || 2.0;
-                document.getElementById('max-delay').value = data.max_delay || 5.0;
-                document.getElementById('user-agent').value = data.user_agent || '';
-                document.getElementById('update-interval').value = data.update_interval_hours || 1;
-                document.getElementById('worker-sleep-min').value = data.worker_sleep_min || 30.0;
-                document.getElementById('worker-sleep-max').value = data.worker_sleep_max || 60.0;
-                document.getElementById('database-url').value = data.database_url || '';
-                document.getElementById('log-level').value = data.log_level || 'INFO';
+                document.getElementById('min-delay').value = fullSettings.min_delay || 2.0;
+                document.getElementById('max-delay').value = fullSettings.max_delay || 5.0;
+                document.getElementById('user-agent').value = fullSettings.user_agent || '';
+                document.getElementById('update-interval').value = fullSettings.update_interval_hours || 1;
+                document.getElementById('worker-sleep-min').value = fullSettings.worker_sleep_min || 30.0;
+                document.getElementById('worker-sleep-max').value = fullSettings.worker_sleep_max || 60.0;
+                document.getElementById('database-url').value = fullSettings.database_url || '';
+                document.getElementById('log-level').value = fullSettings.log_level || 'INFO';
 
             } catch (err) {
                 console.error("Error loading settings:", err);
@@ -151,28 +117,22 @@
             btn.innerHTML = 'Saving...';
             document.getElementById('status-msg').innerText = '';
 
-            const payload = {
-                download_path: document.getElementById('download-path').value,
-                library_path: document.getElementById('library-path').value,
-                compiled_filename_pattern: document.getElementById('compiled-filename-pattern').value,
-                story_folder_format: document.getElementById('story-folder-format').value,
-                chapter_file_format: document.getElementById('chapter-file-format').value,
-                volume_folder_format: document.getElementById('volume-folder-format').value,
-                min_delay: parseFloat(document.getElementById('min-delay').value),
-                max_delay: parseFloat(document.getElementById('max-delay').value),
-                user_agent: document.getElementById('user-agent').value,
-                update_interval_hours: parseInt(document.getElementById('update-interval').value),
-                worker_sleep_min: parseFloat(document.getElementById('worker-sleep-min').value),
-                worker_sleep_max: parseFloat(document.getElementById('worker-sleep-max').value),
-                database_url: document.getElementById('database-url').value,
-                log_level: document.getElementById('log-level').value
-            };
+            // Update local fields
+            fullSettings.download_path = document.getElementById('download-path').value;
+            fullSettings.min_delay = parseFloat(document.getElementById('min-delay').value);
+            fullSettings.max_delay = parseFloat(document.getElementById('max-delay').value);
+            fullSettings.user_agent = document.getElementById('user-agent').value;
+            fullSettings.update_interval_hours = parseInt(document.getElementById('update-interval').value);
+            fullSettings.worker_sleep_min = parseFloat(document.getElementById('worker-sleep-min').value);
+            fullSettings.worker_sleep_max = parseFloat(document.getElementById('worker-sleep-max').value);
+            fullSettings.database_url = document.getElementById('database-url').value;
+            fullSettings.log_level = document.getElementById('log-level').value;
 
             try {
                 const response = await fetch('/api/settings', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify(payload)
+                    body: JSON.stringify(fullSettings)
                 });
 
                 if (!response.ok) throw new Error('Failed to save settings');

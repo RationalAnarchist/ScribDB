@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+
+{% block title %}Naming Settings - Scrollarr{% endblock %}
+
+{% block content %}
+    <header class="mb-8">
+        <h1 class="text-3xl font-bold">Naming Settings</h1>
+    </header>
+
+    <div class="bg-gray-800 rounded-lg p-6 shadow-lg max-w-2xl">
+        <h2 class="text-xl font-bold mb-4 text-gray-200">Library Organization</h2>
+        <form id="settings-form" onsubmit="saveSettings(event)">
+
+            <div class="mb-4">
+                <label class="block text-gray-300 text-sm font-bold mb-2" for="library-path">Library Root Path</label>
+                <input type="text" id="library-path" name="library_path" class="w-full p-3 rounded bg-gray-700 text-white border border-gray-600 focus:outline-none focus:border-blue-500 transition-colors" placeholder="e.g. library">
+                <p class="text-xs text-gray-500 mt-2">The root directory for your library.</p>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label class="block text-gray-300 text-sm font-bold mb-2" for="story-folder-format">Story Folder Format</label>
+                    <input type="text" id="story-folder-format" name="story_folder_format" class="w-full p-3 rounded bg-gray-700 text-white border border-gray-600 focus:outline-none focus:border-blue-500 transition-colors" placeholder="{Title}">
+                    <p class="text-xs text-gray-500 mt-2">Vars: {Title}, {Author}, {Id}</p>
+                </div>
+                <div>
+                    <label class="block text-gray-300 text-sm font-bold mb-2" for="volume-folder-format">Volume Folder Format</label>
+                    <input type="text" id="volume-folder-format" name="volume_folder_format" class="w-full p-3 rounded bg-gray-700 text-white border border-gray-600 focus:outline-none focus:border-blue-500 transition-colors" placeholder="Volume {Volume}">
+                    <p class="text-xs text-gray-500 mt-2">Vars: {Volume}, {Title}</p>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-gray-300 text-sm font-bold mb-2" for="chapter-file-format">Chapter File Format</label>
+                <input type="text" id="chapter-file-format" name="chapter_file_format" class="w-full p-3 rounded bg-gray-700 text-white border border-gray-600 focus:outline-none focus:border-blue-500 transition-colors" placeholder="{Index} - {Title}">
+                <p class="text-xs text-gray-500 mt-2">Vars: {Index}, {Title}, {Volume}</p>
+            </div>
+
+            <h2 class="text-xl font-bold mb-4 text-gray-200 mt-8">Ebook Filenames</h2>
+            <div class="mb-4">
+                <label class="block text-gray-300 text-sm font-bold mb-2" for="single-chapter-name-format">Single Chapter Ebook</label>
+                <input type="text" id="single-chapter-name-format" name="single_chapter_name_format" class="w-full p-3 rounded bg-gray-700 text-white border border-gray-600 focus:outline-none focus:border-blue-500 transition-colors" placeholder="{Title} - {Index} - {Chapter}">
+                <p class="text-xs text-gray-500 mt-2">Vars: {Title} (Story), {Chapter} (Chapter Name), {Index} (Chapter #), {Author}, {Id}</p>
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-gray-300 text-sm font-bold mb-2" for="chapter-group-name-format">Chapter Group Ebook</label>
+                <input type="text" id="chapter-group-name-format" name="chapter_group_name_format" class="w-full p-3 rounded bg-gray-700 text-white border border-gray-600 focus:outline-none focus:border-blue-500 transition-colors" placeholder="{Title} - {StartChapter} to {EndChapter}">
+                <p class="text-xs text-gray-500 mt-2">Vars: {Title} (Story), {StartChapter}, {EndChapter}, {Author}, {Id}</p>
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-gray-300 text-sm font-bold mb-2" for="volume-name-format">Volume Ebook</label>
+                <input type="text" id="volume-name-format" name="volume_name_format" class="w-full p-3 rounded bg-gray-700 text-white border border-gray-600 focus:outline-none focus:border-blue-500 transition-colors" placeholder="{Title} - {Volume} - {VolName}">
+                <p class="text-xs text-gray-500 mt-2">Vars: {Title} (Story), {Volume} (Number), {VolName} (Title), {Author}, {Id}</p>
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-gray-300 text-sm font-bold mb-2" for="full-story-name-format">Full Story Ebook</label>
+                <input type="text" id="full-story-name-format" name="full_story_name_format" class="w-full p-3 rounded bg-gray-700 text-white border border-gray-600 focus:outline-none focus:border-blue-500 transition-colors" placeholder="{Title} - Full story to {EndChapter}">
+                <p class="text-xs text-gray-500 mt-2">Vars: {Title}, {Author}, {Id}, {EndChapter}</p>
+            </div>
+
+            <div class="mb-6">
+                <label class="block text-gray-300 text-sm font-bold mb-2" for="compiled-filename-pattern">Legacy Format (Backup)</label>
+                <input type="text" id="compiled-filename-pattern" name="compiled_filename_pattern" class="w-full p-3 rounded bg-gray-700 text-white border border-gray-600 focus:outline-none focus:border-blue-500 transition-colors" placeholder="{Title} - Vol {Volume}">
+                <p class="text-xs text-gray-500 mt-2">Used if specific formats fail or for backward compatibility.</p>
+            </div>
+
+            <div class="flex items-center gap-4 mt-8">
+                <button type="submit" id="save-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded transition-colors flex items-center gap-2">
+                    Save Changes
+                </button>
+                <span id="status-msg" class="text-sm font-medium"></span>
+            </div>
+        </form>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+    <script>
+        // We need to fetch all settings to populate the form, including non-naming ones to preserve them on save
+        let fullSettings = {};
+
+        async function loadSettings() {
+            try {
+                const response = await fetch('/api/settings');
+                if (!response.ok) throw new Error('Failed to load settings');
+                fullSettings = await response.json();
+
+                document.getElementById('library-path').value = fullSettings.library_path || 'library';
+                document.getElementById('story-folder-format').value = fullSettings.story_folder_format || '{Title}';
+                document.getElementById('volume-folder-format').value = fullSettings.volume_folder_format || 'Volume {Volume}';
+                document.getElementById('chapter-file-format').value = fullSettings.chapter_file_format || '{Index} - {Title}';
+
+                document.getElementById('single-chapter-name-format').value = fullSettings.single_chapter_name_format || '{Title} - {Index} - {Chapter}';
+                document.getElementById('chapter-group-name-format').value = fullSettings.chapter_group_name_format || '{Title} - {StartChapter} to {EndChapter}';
+                document.getElementById('volume-name-format').value = fullSettings.volume_name_format || '{Title} - {Volume} - {VolName}';
+                document.getElementById('full-story-name-format').value = fullSettings.full_story_name_format || '{Title} - Full story to {EndChapter}';
+                document.getElementById('compiled-filename-pattern').value = fullSettings.compiled_filename_pattern || '{Title} - {Volume}';
+
+            } catch (err) {
+                console.error("Error loading settings:", err);
+                document.getElementById('status-msg').innerText = "Failed to load settings.";
+                document.getElementById('status-msg').className = "text-red-500 text-sm font-medium";
+            }
+        }
+
+        async function saveSettings(e) {
+            e.preventDefault();
+            const btn = document.getElementById('save-btn');
+            const originalText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = 'Saving...';
+            document.getElementById('status-msg').innerText = '';
+
+            // Update fullSettings with form values
+            fullSettings.library_path = document.getElementById('library-path').value;
+            fullSettings.story_folder_format = document.getElementById('story-folder-format').value;
+            fullSettings.volume_folder_format = document.getElementById('volume-folder-format').value;
+            fullSettings.chapter_file_format = document.getElementById('chapter-file-format').value;
+            fullSettings.single_chapter_name_format = document.getElementById('single-chapter-name-format').value;
+            fullSettings.chapter_group_name_format = document.getElementById('chapter-group-name-format').value;
+            fullSettings.volume_name_format = document.getElementById('volume-name-format').value;
+            fullSettings.full_story_name_format = document.getElementById('full-story-name-format').value;
+            fullSettings.compiled_filename_pattern = document.getElementById('compiled-filename-pattern').value;
+
+            try {
+                const response = await fetch('/api/settings', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(fullSettings)
+                });
+
+                if (!response.ok) throw new Error('Failed to save settings');
+
+                document.getElementById('status-msg').innerText = "Settings saved successfully.";
+                document.getElementById('status-msg').className = "text-green-500 text-sm font-medium";
+
+                setTimeout(() => {
+                     document.getElementById('status-msg').innerText = "";
+                }, 3000);
+
+            } catch (err) {
+                console.error("Error saving settings:", err);
+                document.getElementById('status-msg').innerText = "Failed to save settings.";
+                document.getElementById('status-msg').className = "text-red-500 text-sm font-medium";
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+        }
+
+        loadSettings();
+    </script>
+{% endblock %}

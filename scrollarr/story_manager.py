@@ -276,37 +276,10 @@ class StoryManager:
         Compiles the story into an EPUB file.
         Returns the path of the generated EPUB.
         """
-        session = SessionLocal()
-        try:
-            story = session.query(Story).filter(Story.id == story_id).first()
-            if not story:
-                raise ValueError(f"Story with ID {story_id} not found")
-
-            chapters = session.query(Chapter).filter(Chapter.story_id == story_id).order_by(Chapter.id).all()
-
-            chapter_data = []
-            for chapter in chapters:
-                if chapter.is_downloaded and chapter.local_path and os.path.exists(chapter.local_path):
-                    with open(chapter.local_path, 'r', encoding='utf-8') as f:
-                        content = f.read()
-                    chapter_data.append({'title': chapter.title, 'content': content})
-                else:
-                    logger.warning(f"Chapter {chapter.title} (ID: {chapter.id}) is missing or not downloaded.")
-
-            if not chapter_data:
-                raise ValueError("No downloaded chapters found for this story.")
-
-            from .ebook_builder import EbookBuilder
-            builder = EbookBuilder()
-
-            # Use LibraryManager for output path
-            output_path = self.library_manager.get_compiled_absolute_path(story, "Full", chapters=chapters)
-            self.library_manager.ensure_directories(output_path.parent)
-
-            builder.make_epub(story.title, story.author, chapter_data, str(output_path), story.cover_path)
-            return str(output_path)
-        finally:
-            session.close()
+        # Delegate to EbookBuilder
+        from .ebook_builder import EbookBuilder
+        builder = EbookBuilder()
+        return builder.compile_full_story(story_id)
 
     def update_library(self):
         """
