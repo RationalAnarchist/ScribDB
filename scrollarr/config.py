@@ -48,6 +48,10 @@ class ConfigManager:
             if 'filename_pattern' in file_config and 'compiled_filename_pattern' not in file_config:
                  config['compiled_filename_pattern'] = file_config['filename_pattern']
 
+            # Fix legacy double "Vol" pattern if present
+            if config.get('compiled_filename_pattern') == "{Title} - Vol {Volume}":
+                config['compiled_filename_pattern'] = "{Title} - {Volume}"
+
         except Exception as e:
             logger.error(f"Failed to load config file: {e}. Using defaults.")
 

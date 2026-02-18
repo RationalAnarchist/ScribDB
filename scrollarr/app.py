@@ -3,6 +3,7 @@ import os
 import psutil
 import shutil
 import time
+from pathlib import Path
 from typing import Optional, List, Dict
 
 from fastapi import FastAPI, Depends, HTTPException, status, Request, Response, UploadFile, File
@@ -701,6 +702,9 @@ async def email_volume(story_id: int, volume_number: int, db: Session = Depends(
         if not email_targets:
             raise HTTPException(status_code=400, detail="No enabled email notifications found.")
 
+        if not config_manager.get('smtp_host'):
+             raise HTTPException(status_code=400, detail="SMTP settings are not configured. Please check Settings > Notifications.")
+
         builder = EbookBuilder()
         output_path = builder.compile_volume(story_id, volume_number)
 
@@ -740,6 +744,9 @@ async def email_full_story(story_id: int, db: Session = Depends(get_db)):
 
         if not email_targets:
             raise HTTPException(status_code=400, detail="No enabled email notifications found.")
+
+        if not config_manager.get('smtp_host'):
+             raise HTTPException(status_code=400, detail="SMTP settings are not configured. Please check Settings > Notifications.")
 
         builder = EbookBuilder()
         output_path = builder.compile_full_story(story_id)
