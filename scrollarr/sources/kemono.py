@@ -1,5 +1,6 @@
 import re
 import time
+import subprocess
 from typing import List, Dict, Optional
 from datetime import datetime
 from bs4 import BeautifulSoup
@@ -18,10 +19,31 @@ class KemonoSource(BaseSource):
         except ImportError:
             raise ImportError("Playwright is not installed. Please install it to use Kemono source.")
 
+    def _ensure_browser_installed(self):
+        """Attempts to install Playwright browsers if missing."""
+        print("Playwright browsers not found. Installing...")
+        try:
+            subprocess.run(["playwright", "install", "chromium"], check=True)
+            print("Playwright browsers installed successfully.")
+        except subprocess.CalledProcessError as e:
+            print(f"Failed to install Playwright browsers: {e}")
+            raise
+        except Exception as e:
+            print(f"Unexpected error installing Playwright browsers: {e}")
+            raise
+
     def _scrape_page(self, url: str):
         """Helper to scrape a page using Playwright."""
         with self._get_playwright() as p:
-            browser = p.chromium.launch(headless=True)
+            try:
+                browser = p.chromium.launch(headless=True)
+            except Exception as e:
+                if "Executable doesn't exist" in str(e):
+                    self._ensure_browser_installed()
+                    browser = p.chromium.launch(headless=True)
+                else:
+                    raise e
+
             page = browser.new_page()
             try:
                 # Set a reasonable timeout
@@ -102,7 +124,15 @@ class KemonoSource(BaseSource):
         # Using a single browser session is better for multiple pages.
 
         with self._get_playwright() as p:
-            browser = p.chromium.launch(headless=True)
+            try:
+                browser = p.chromium.launch(headless=True)
+            except Exception as e:
+                if "Executable doesn't exist" in str(e):
+                    self._ensure_browser_installed()
+                    browser = p.chromium.launch(headless=True)
+                else:
+                    raise e
+
             context = browser.new_context()
             page = context.new_page()
 
@@ -200,7 +230,15 @@ class KemonoSource(BaseSource):
 
         # Using the logic from sample file, adapted to class method
         with self._get_playwright() as p:
-            browser = p.chromium.launch(headless=True)
+            try:
+                browser = p.chromium.launch(headless=True)
+            except Exception as e:
+                if "Executable doesn't exist" in str(e):
+                    self._ensure_browser_installed()
+                    browser = p.chromium.launch(headless=True)
+                else:
+                    raise e
+
             page = browser.new_page()
             try:
                 page.goto(chapter_url, timeout=90000, wait_until="domcontentloaded")
@@ -268,7 +306,15 @@ class KemonoSource(BaseSource):
         search_url = f"https://kemono.cr/artists?q={query}" # Default to .cr as it seems more stable
 
         with self._get_playwright() as p:
-            browser = p.chromium.launch(headless=True)
+            try:
+                browser = p.chromium.launch(headless=True)
+            except Exception as e:
+                if "Executable doesn't exist" in str(e):
+                    self._ensure_browser_installed()
+                    browser = p.chromium.launch(headless=True)
+                else:
+                    raise e
+
             page = browser.new_page()
             try:
                 page.set_default_timeout(60000)
