@@ -88,7 +88,7 @@ class RoyalRoadSource(BaseSource):
             'publication_status': status
         }
 
-    def get_chapter_list(self, url: str) -> List[Dict]:
+    def get_chapter_list(self, url: str, **kwargs) -> List[Dict]:
         response = self.requester.get(url)
         soup = BeautifulSoup(response.text, 'html.parser')
 

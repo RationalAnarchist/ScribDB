@@ -91,7 +91,7 @@ class QuestionableQuestingSource(BaseSource):
             'publication_status': status
         }
 
-    def get_chapter_list(self, url: str) -> List[Dict]:
+    def get_chapter_list(self, url: str, **kwargs) -> List[Dict]:
         url = self._normalize_url(url)
         # Construct threadmarks URL
         threadmarks_url = urljoin(url, 'threadmarks')
@@ -295,7 +295,7 @@ class QuestionableQuestingAllPostsSource(QuestionableQuestingSource):
             return match.group(1)
         return ""
 
-    def get_chapter_list(self, url: str) -> List[Dict]:
+    def get_chapter_list(self, url: str, **kwargs) -> List[Dict]:
         url = self._normalize_url(url)
 
         # 1. Fetch Threadmarks to get Volumes
@@ -322,13 +322,53 @@ class QuestionableQuestingAllPostsSource(QuestionableQuestingSource):
         # Tracking state
         current_vol_title = "Prologue"
         current_vol_number = 1
+        part_counter = 0
+
+        # Optimization: Start from Last Known Chapter if available
+        last_chapter = kwargs.get('last_chapter')
+        if last_chapter and last_chapter.get('url'):
+            try:
+                # Determine start page from last chapter URL
+                # Fetching the post URL usually redirects to the thread page with page-XX
+                # We use a HEAD request to follow redirects efficiently, or GET if HEAD not supported well
+                resp = self.requester.get(last_chapter['url'], allow_redirects=True)
+                final_url = resp.url
+
+                # Check for page number in URL
+                # e.g. threads/slug.123/page-81 or page-81#post-1234
+                match = re.search(r'page-(\d+)', final_url)
+                if match:
+                    # Construct clean page URL
+                    # Use the final_url but strip anchor and ensure it is just the page
+                    page_base = final_url.split('#')[0]
+                    next_url = page_base
+
+                    # Initialize state from last_chapter to be safe
+                    # This will be corrected when we hit the actual post in the loop
+                    if last_chapter.get('volume_title'):
+                        current_vol_title = last_chapter['volume_title']
+                    if last_chapter.get('volume_number'):
+                        current_vol_number = last_chapter['volume_number']
+
+                    # Try to parse part counter from title
+                    # Format: "{vol} - Part {X}"
+                    title = last_chapter.get('title', '')
+                    # Escape volume title for regex
+                    vol_esc = re.escape(current_vol_title)
+                    part_match = re.search(rf"{vol_esc} - Part (\d+)", title)
+                    if part_match:
+                        part_counter = int(part_match.group(1))
+                    elif title == current_vol_title:
+                         # Last chapter was a threadmark
+                         part_counter = 1
+            except Exception:
+                # Fallback to page 1 if anything fails
+                pass
 
         # Optimization: We need to know if we are "inside" a volume.
         # If the first post is NOT a threadmark, it's Prologue (Vol 1).
         # The user said "threadmarks to indicate the start of each section".
         # So we update current_vol when we hit a threadmark post.
-
-        part_counter = 0
 
         while next_url:
             response = self.requester.get(next_url)
@@ -365,6 +405,29 @@ class QuestionableQuestingAllPostsSource(QuestionableQuestingSource):
 
                 # It is an author post.
 
+                # URL
+                # Construct permalink
+                chapter_url = urljoin(self.BASE_URL, f"posts/{post_id}/")
+
+                # Sync state if we hit the last known chapter
+                if last_chapter and chapter_url == last_chapter.get('url'):
+                    # Force sync state
+                    if last_chapter.get('volume_title'):
+                        current_vol_title = last_chapter['volume_title']
+                    if last_chapter.get('volume_number'):
+                        current_vol_number = last_chapter['volume_number']
+
+                    # Parse title to sync part_counter
+                    title = last_chapter.get('title', '')
+                    if title == current_vol_title:
+                        part_counter = 1
+                    else:
+                        vol_esc = re.escape(current_vol_title)
+                        part_match = re.search(rf"{vol_esc} - Part (\d+)", title)
+                        if part_match:
+                            # We subtract 1 because the loop logic will increment it for the *current* post
+                            part_counter = int(part_match.group(1)) - 1
+
                 # Is it a threadmark?
                 if post_id in threadmarks_map:
                     tm_title, tm_number = threadmarks_map[post_id]
@@ -396,10 +459,6 @@ class QuestionableQuestingAllPostsSource(QuestionableQuestingSource):
                             published_date = datetime.fromisoformat(time_tag['datetime'].replace('Z', '+00:00'))
                     except Exception:
                         pass
-
-                # URL
-                # Construct permalink
-                chapter_url = urljoin(self.BASE_URL, f"posts/{post_id}/")
 
                 chapters.append({
                     'title': chapter_title,
