@@ -7,7 +7,7 @@ from bs4 import BeautifulSoup
 from ..core_logic import BaseSource
 
 class KemonoSource(BaseSource):
-    BASE_URLS = ["https://kemono.su", "https://kemono.party", "https://kemono.cr"]
+    BASE_URLS = ["https://kemono.cr", "https://kemono.su", "https://kemono.party"]
 
     def identify(self, url: str) -> bool:
         return any(base in url for base in self.BASE_URLS)
@@ -72,13 +72,21 @@ class KemonoSource(BaseSource):
         # Typically in <h1 class="user-header__name">Artist Name</h1>
         # Or <meta property="og:title" content="...">
 
-        title_tag = soup.select_one('h1.user-header__name span') or soup.select_one('meta[property="og:title"]')
+        title_tag = soup.select_one('h1.user-header__name span')
         title = "Unknown Title"
-        if title_tag:
-            if title_tag.name == 'meta':
-                title = title_tag.get('content', 'Unknown Title')
-            else:
-                title = title_tag.get_text(strip=True)
+
+        if title_tag and title_tag.get_text(strip=True):
+            title = title_tag.get_text(strip=True)
+        else:
+            # Try parsing OG Title: Posts of "Artist" from "Service"
+            og_title_tag = soup.select_one('meta[property="og:title"]')
+            if og_title_tag:
+                og_title = og_title_tag.get('content', '')
+                match = re.search(r'Posts of "(.+?)" from "(.+?)"', og_title)
+                if match:
+                    title = match.group(1)
+                else:
+                    title = og_title # Fallback
 
         # Author is the same as title usually for artist pages
         author = title
@@ -97,7 +105,7 @@ class KemonoSource(BaseSource):
                 if src.startswith('//'):
                     cover_url = f"https:{src}"
                 elif src.startswith('/'):
-                    cover_url = f"https://kemono.su{src}" # Defaulting to .su if relative, but maybe check url
+                    cover_url = f"https://kemono.cr{src}" # Defaulting to .cr
                 else:
                     cover_url = src
 
@@ -170,7 +178,7 @@ class KemonoSource(BaseSource):
                         # Resolve URL
                         full_url = href
                         if href.startswith('/'):
-                            full_url = f"https://kemono.su{href}" # default to .su
+                            full_url = f"https://kemono.cr{href}" # default to .cr
 
                         # Title
                         title_div = post.select_one('.post-card__header')
@@ -180,20 +188,23 @@ class KemonoSource(BaseSource):
                         date_div = post.select_one('.post-card__footer div')
                         published_date = None
                         if date_div:
-                            # Format usually "2023-01-01 12:00:00" or similar
-                            date_str = date_div.get_text(strip=True)
-                            try:
-                                # Try parsing ISO format or variations
-                                # Often displayed as "Added: YYYY-MM-DD" or just date
-                                # Actually Kemono displays "Published: YYYY-MM-DD"
-                                # Let's try basic parsing
-                                if 'Published:' in date_str:
-                                    date_str = date_str.replace('Published:', '').strip()
+                            # Format usually "2023-01-01" sometimes followed by text like "1 attachment"
+                            raw_date_str = date_div.get_text(strip=True)
 
-                                published_date = datetime.strptime(date_str, "%Y-%m-%d %H:%M:%S")
-                            except ValueError:
+                            # Extract YYYY-MM-DD
+                            match = re.search(r"(\d{4}-\d{2}-\d{2})", raw_date_str)
+                            if match:
+                                date_str = match.group(1)
                                 try:
                                     published_date = datetime.strptime(date_str, "%Y-%m-%d")
+                                except:
+                                    pass
+                            else:
+                                # Fallback to ISO if present or previous logic
+                                try:
+                                    if 'Published:' in raw_date_str:
+                                        date_str = raw_date_str.replace('Published:', '').strip()
+                                    published_date = datetime.strptime(date_str, "%Y-%m-%d %H:%M:%S")
                                 except:
                                     pass
 
@@ -207,10 +218,10 @@ class KemonoSource(BaseSource):
                         has_more = False
                     else:
                         chapters.extend(page_chapters)
-                        offset += 25 # Standard offset
+                        offset += 50 # Kemono.cr uses 50 items per page
 
                         # Safety break
-                        if offset > 5000: # Limit to 200 pages
+                        if offset > 10000: # Limit to 200 pages (approx)
                             print("Reached page limit for safety.")
                             has_more = False
 
@@ -220,9 +231,10 @@ class KemonoSource(BaseSource):
             finally:
                 browser.close()
 
-        # Sort by date if possible, but they come ordered by date desc usually.
-        # We return them in the order we found them (usually newest first).
-        # StoryManager handles ordering/indexing.
+        # Sort by published_date ASCENDING (oldest first)
+        # Handle None dates by putting them last or first? Usually put them last.
+        chapters.sort(key=lambda x: x['published_date'] or datetime.min)
+
         return chapters
 
     def get_chapter_content(self, chapter_url: str) -> str:
@@ -264,7 +276,7 @@ class KemonoSource(BaseSource):
                     src = thumb_el.get_attribute('src')
                     if src:
                         if src.startswith('/'):
-                            src = f"https://kemono.su{src}"
+                            src = f"https://kemono.cr{src}"
                         attachments_html += f'<img src="{src}" /><br/>'
 
                 # Check for attachments
@@ -277,11 +289,11 @@ class KemonoSource(BaseSource):
                         src = thumb.get_attribute('src')
                         if src:
                             if src.startswith('/'):
-                                src = f"https://kemono.su{src}"
+                                src = f"https://kemono.cr{src}"
                             attachments_html += f'<img src="{src}" /><br/>'
                     elif href and (href.endswith('.jpg') or href.endswith('.png') or href.endswith('.jpeg')):
                         if href.startswith('/'):
-                            href = f"https://kemono.su{href}"
+                            href = f"https://kemono.cr{href}"
                         attachments_html += f'<img src="{href}" /><br/>'
 
                 if content_html:
