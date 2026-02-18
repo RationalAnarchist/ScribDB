@@ -715,11 +715,32 @@ async def email_volume(story_id: int, volume_number: int, db: Session = Depends(
         story = db.query(Story).filter(Story.id == story_id).first()
         story_title = story.title if story else "Unknown Story"
         subject = f"Ebook: {story_title} - Volume {volume_number}"
-        body = f"Attached is the compiled ebook for {story_title}, Volume {volume_number}."
+
+        body_with_file = f"Attached is the compiled ebook for {story_title}, Volume {volume_number}."
+        body_without_file = f"The compiled ebook for {story_title}, Volume {volume_number} has been created and sent to your other devices."
+
+        # Filter targets
+        targets_with_attach = [t for t in email_targets if t.attach_file]
+        targets_without_attach = [t for t in email_targets if not t.attach_file]
+
+        # If no one is explicitly set to receive files, then everyone receives the file (fallback)
+        send_file_to_all_others = len(targets_with_attach) == 0
 
         sent_count = 0
-        for target in email_targets:
-            nm.send_email(target.target, subject, body, str(output_path))
+
+        # 1. Targets explicitly requesting files
+        for target in targets_with_attach:
+            nm.send_email(target.target, subject, body_with_file, str(output_path))
+            sent_count += 1
+
+        # 2. Targets NOT requesting files
+        for target in targets_without_attach:
+            if send_file_to_all_others:
+                # Fallback: Send file anyway because no one else is getting it
+                nm.send_email(target.target, subject, body_with_file, str(output_path))
+            else:
+                # Send notification only
+                nm.send_email(target.target, subject, body_without_file, None)
             sent_count += 1
 
         return {"message": f"Ebook sent to {sent_count} recipients."}
@@ -758,11 +779,32 @@ async def email_full_story(story_id: int, db: Session = Depends(get_db)):
         story = db.query(Story).filter(Story.id == story_id).first()
         story_title = story.title if story else "Unknown Story"
         subject = f"Ebook: {story_title} - Full Story"
-        body = f"Attached is the compiled ebook for the full story: {story_title}."
+
+        body_with_file = f"Attached is the compiled ebook for the full story: {story_title}."
+        body_without_file = f"The compiled ebook for the full story: {story_title} has been created and sent to your other devices."
+
+        # Filter targets
+        targets_with_attach = [t for t in email_targets if t.attach_file]
+        targets_without_attach = [t for t in email_targets if not t.attach_file]
+
+        # If no one is explicitly set to receive files, then everyone receives the file (fallback)
+        send_file_to_all_others = len(targets_with_attach) == 0
 
         sent_count = 0
-        for target in email_targets:
-            nm.send_email(target.target, subject, body, str(output_path))
+
+        # 1. Targets explicitly requesting files
+        for target in targets_with_attach:
+            nm.send_email(target.target, subject, body_with_file, str(output_path))
+            sent_count += 1
+
+        # 2. Targets NOT requesting files
+        for target in targets_without_attach:
+            if send_file_to_all_others:
+                # Fallback: Send file anyway because no one else is getting it
+                nm.send_email(target.target, subject, body_with_file, str(output_path))
+            else:
+                # Send notification only
+                nm.send_email(target.target, subject, body_without_file, None)
             sent_count += 1
 
         return {"message": f"Ebook sent to {sent_count} recipients."}
