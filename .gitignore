@@ -12,3 +12,4 @@ venv/
 saved_stories/
 logs/*
 !logs/.gitkeep
+*.log
