@@ -182,11 +182,13 @@ class TestQQOptimization(unittest.TestCase):
 
         chapters = source.get_chapter_list(url, last_chapter=last_chapter)
 
-        self.assertEqual(len(chapters), 3) # 204, 205, 206
+        # We now skip posts before the sync point to maintain index consistency.
+        # So we expect 205 (sync point) and 206 (new). 204 is skipped.
+        self.assertEqual(len(chapters), 2) # 205, 206
 
         # Post 206 should be "Volume 2 - Part 6".
-        self.assertEqual(chapters[2]['title'], "Volume 2 - Part 6")
-        self.assertEqual(chapters[2]['volume_title'], "Volume 2")
+        self.assertEqual(chapters[1]['title'], "Volume 2 - Part 6")
+        self.assertEqual(chapters[1]['volume_title'], "Volume 2")
 
 if __name__ == '__main__':
     unittest.main()

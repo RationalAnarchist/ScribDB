@@ -96,8 +96,23 @@ class QuestionableQuestingSource(BaseSource):
         # Construct threadmarks URL
         threadmarks_url = urljoin(url, 'threadmarks')
 
-        chapters = []
+        # Optimization: Start from page X if we have many chapters
+        last_chapter = kwargs.get('last_chapter')
+        start_page = 1
+        if last_chapter and last_chapter.get('index'):
+            # Start from the page containing the last chapter, or the one before it to be safe.
+            # Page size is usually 25.
+            # (index - 1) // 25 + 1
+            last_idx = last_chapter.get('index')
+            start_page = max(1, (last_idx - 1) // 25 + 1)
+
+        # If start_page > 1, append it to URL
         next_url = threadmarks_url
+        if start_page > 1:
+            next_url = f"{threadmarks_url}?page={start_page}"
+
+        chapters = []
+        current_page = start_page
 
         while next_url:
             response = self.requester.get(next_url)
@@ -106,7 +121,7 @@ class QuestionableQuestingSource(BaseSource):
             # Parse chapters
             # Look for threadmark items
             items = soup.select('.structItem--threadmark')
-            for item in items:
+            for i, item in enumerate(items):
                 link = item.select_one('.structItem-title a')
                 if link:
                     title = link.get_text(strip=True)
@@ -126,16 +141,22 @@ class QuestionableQuestingSource(BaseSource):
                         except Exception:
                             pass
 
+                    # Calculate global index
+                    # (current_page - 1) * 25 + (i + 1)
+                    global_index = (current_page - 1) * 25 + (i + 1)
+
                     chapters.append({
                         'title': title,
                         'url': chapter_url,
-                        'published_date': published_date
+                        'published_date': published_date,
+                        'index': global_index
                     })
 
             # Find next page
             next_link = soup.select_one('a.pageNav-jump--next')
             if next_link:
                 next_url = urljoin(self.BASE_URL, next_link['href'])
+                current_page += 1
             else:
                 next_url = None
 
@@ -370,6 +391,16 @@ class QuestionableQuestingAllPostsSource(QuestionableQuestingSource):
         # The user said "threadmarks to indicate the start of each section".
         # So we update current_vol when we hit a threadmark post.
 
+        # Initialize global index
+        current_global_index = 0
+        found_sync_point = False
+
+        if last_chapter and last_chapter.get('index'):
+            current_global_index = last_chapter.get('index')
+        else:
+            # If no last chapter, we start from beginning
+            found_sync_point = True
+
         while next_url:
             response = self.requester.get(next_url)
             soup = BeautifulSoup(response.text, 'html.parser')
@@ -409,13 +440,28 @@ class QuestionableQuestingAllPostsSource(QuestionableQuestingSource):
                 # Construct permalink
                 chapter_url = urljoin(self.BASE_URL, f"posts/{post_id}/")
 
+                # Determine if we process this post (Sync Logic)
+                is_sync_post = False
+                if last_chapter and not found_sync_point:
+                    if chapter_url == last_chapter.get('url'):
+                        found_sync_point = True
+                        is_sync_post = True
+                    else:
+                        # Skip this post as we haven't reached the sync point yet
+                        continue
+                else:
+                    # Normal processing
+                    current_global_index += 1
+
                 # Sync state if we hit the last known chapter
-                if last_chapter and chapter_url == last_chapter.get('url'):
+                if is_sync_post:
                     # Force sync state
                     if last_chapter.get('volume_title'):
                         current_vol_title = last_chapter['volume_title']
                     if last_chapter.get('volume_number'):
                         current_vol_number = last_chapter['volume_number']
+                    if last_chapter.get('index'):
+                        current_global_index = last_chapter.get('index')
 
                     # Parse title to sync part_counter
                     title = last_chapter.get('title', '')
@@ -465,7 +511,8 @@ class QuestionableQuestingAllPostsSource(QuestionableQuestingSource):
                     'url': chapter_url,
                     'published_date': published_date,
                     'volume_title': current_vol_title,
-                    'volume_number': current_vol_number
+                    'volume_number': current_vol_number,
+                    'index': current_global_index
                 })
 
             # Find next page
