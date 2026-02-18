@@ -21,7 +21,7 @@ class ConfigManager:
         "story_folder_format": "{Title} ({Id})",
         "chapter_file_format": "{Index} - {Title}",
         "volume_folder_format": "Volume {Volume}",
-        "compiled_filename_pattern": "{Title} - Vol {Volume}"
+        "compiled_filename_pattern": "{Title} - {Volume}"
     }
 
     def __new__(cls):

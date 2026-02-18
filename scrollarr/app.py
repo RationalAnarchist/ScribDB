@@ -633,16 +633,24 @@ async def story_details(story_id: int, request: Request, db: Session = Depends(g
     # Get all profiles
     profiles = db.query(EbookProfile).all()
 
+    # Check for email notifications
+    email_targets_count = db.query(NotificationSettings).filter(
+        NotificationSettings.kind == 'email',
+        NotificationSettings.enabled == True
+    ).count()
+    has_email_notifications = email_targets_count > 0
+
     return templates.TemplateResponse("story_details.html", {
         "request": request,
         "story": story,
         "chapters": chapters,
         "volumes": volumes,
         "stats": stats,
-        "profiles": profiles
+        "profiles": profiles,
+        "has_email_notifications": has_email_notifications
     })
 
-@app.post("/api/compile/{story_id}/{volume_number}")
+@app.post("/api/compile/{story_id}/{volume_number:int}")
 async def compile_volume(story_id: int, volume_number: int):
     """Compile a volume into an EPUB."""
     try:
@@ -659,6 +667,105 @@ async def compile_volume(story_id: int, volume_number: int):
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         logger.error(f"Compile error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/compile/{story_id}/full")
+async def compile_full_story(story_id: int):
+    """Compile the full story into an EPUB."""
+    try:
+        builder = EbookBuilder()
+        output_path = builder.compile_full_story(story_id)
+
+        if not output_path or not os.path.exists(output_path):
+             raise HTTPException(status_code=500, detail="Failed to create ebook file")
+
+        filename = os.path.basename(output_path)
+        return FileResponse(output_path, media_type='application/epub+zip', filename=filename)
+
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Compile full story error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/email/{story_id}/{volume_number:int}")
+async def email_volume(story_id: int, volume_number: int, db: Session = Depends(get_db)):
+    """Compile and email a volume."""
+    try:
+        # Check for enabled email notifications
+        email_targets = db.query(NotificationSettings).filter(
+            NotificationSettings.kind == 'email',
+            NotificationSettings.enabled == True
+        ).all()
+
+        if not email_targets:
+            raise HTTPException(status_code=400, detail="No enabled email notifications found.")
+
+        builder = EbookBuilder()
+        output_path = builder.compile_volume(story_id, volume_number)
+
+        if not output_path or not os.path.exists(output_path):
+             raise HTTPException(status_code=500, detail="Failed to create ebook file")
+
+        nm = NotificationManager()
+        story = db.query(Story).filter(Story.id == story_id).first()
+        story_title = story.title if story else "Unknown Story"
+        subject = f"Ebook: {story_title} - Volume {volume_number}"
+        body = f"Attached is the compiled ebook for {story_title}, Volume {volume_number}."
+
+        sent_count = 0
+        for target in email_targets:
+            nm.send_email(target.target, subject, body, str(output_path))
+            sent_count += 1
+
+        return {"message": f"Ebook sent to {sent_count} recipients."}
+
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        logger.error(f"Email volume error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/email/{story_id}/full")
+async def email_full_story(story_id: int, db: Session = Depends(get_db)):
+    """Compile and email the full story."""
+    try:
+        # Check for enabled email notifications
+        email_targets = db.query(NotificationSettings).filter(
+            NotificationSettings.kind == 'email',
+            NotificationSettings.enabled == True
+        ).all()
+
+        if not email_targets:
+            raise HTTPException(status_code=400, detail="No enabled email notifications found.")
+
+        builder = EbookBuilder()
+        output_path = builder.compile_full_story(story_id)
+
+        if not output_path or not os.path.exists(output_path):
+             raise HTTPException(status_code=500, detail="Failed to create ebook file")
+
+        nm = NotificationManager()
+        story = db.query(Story).filter(Story.id == story_id).first()
+        story_title = story.title if story else "Unknown Story"
+        subject = f"Ebook: {story_title} - Full Story"
+        body = f"Attached is the compiled ebook for the full story: {story_title}."
+
+        sent_count = 0
+        for target in email_targets:
+            nm.send_email(target.target, subject, body, str(output_path))
+            sent_count += 1
+
+        return {"message": f"Ebook sent to {sent_count} recipients."}
+
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        logger.error(f"Email full story error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/profiles", response_model=List[ProfileResponse])
