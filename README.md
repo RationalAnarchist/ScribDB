@@ -73,7 +73,9 @@ The easiest way to run Scrollarr is to start the web server. This will launch th
 
 ```bash
 # Ensure venv is activated
-uvicorn app:app --host 0.0.0.0 --port 8000
+python run.py
+# Or directly with uvicorn
+uvicorn scrollarr.app:app --host 0.0.0.0 --port 8000
 ```
 
 - Access the dashboard at: `http://localhost:8000` (or `http://<pi-ip-address>:8000`)
@@ -83,13 +85,13 @@ uvicorn app:app --host 0.0.0.0 --port 8000
 
 You can also use the CLI for specific tasks.
 
-- **Add a story:** `python cli.py add "https://site.com/story"`
-- **List stories:** `python cli.py list`
-- **Compile a story:** `python cli.py compile <story_id>`
+- **Add a story:** `python -m scrollarr.cli add "https://site.com/story"`
+- **List stories:** `python -m scrollarr.cli list`
+- **Compile a story:** `python -m scrollarr.cli compile <story_id>`
 
 ## Configuration
 
-Scrollarr uses a `config.json` file for settings, which can also be managed via the Web UI (**Settings** page).
+Scrollarr uses a `config/config.json` file for settings, which can also be managed via the Web UI (**Settings** page).
 
 **Key Settings:**
 - `download_path`: Directory to store raw chapter files (default: `saved_stories`).
@@ -97,6 +99,10 @@ Scrollarr uses a `config.json` file for settings, which can also be managed via 
 - `update_interval_hours`: Frequency of update checks (default: `1`).
 - `worker_sleep_min/max`: Delay between download tasks to be polite.
 - `database_url`: Database connection string (default: `sqlite:///library.db`).
+
+**Environment Variables:**
+You can override any configuration setting using environment variables prefixed with `SCROLLARR_`.
+Example: `SCROLLARR_DOWNLOAD_PATH=/mnt/storage/downloads`.
 
 ## Efficiency / Low Power Devices (Raspberry Pi)
 
@@ -122,7 +128,7 @@ After=network.target
 [Service]
 User=pi
 WorkingDirectory=/home/pi/scrollarr
-ExecStart=/home/pi/scrollarr/venv/bin/uvicorn app:app --host 0.0.0.0 --port 8000
+ExecStart=/home/pi/scrollarr/venv/bin/uvicorn scrollarr.app:app --host 0.0.0.0 --port 8000
 Restart=always
 # Optional: Wait for network
 ExecStartPre=/bin/sleep 10
@@ -142,14 +148,19 @@ sudo systemctl start scrollarr
 
 **Running Tests:**
 ```bash
-python3 -m unittest discover . -p "test_*.py"
+python3 -m unittest discover tests
 ```
 
 ## Project Structure
 
-- `app.py`: FastAPI application entry point.
-- `job_manager.py`: Background task scheduler.
-- `story_manager.py`: Core logic for stories and providers.
-- `database.py`: SQLAlchemy models.
-- `ebook_builder.py`: EPUB/PDF generation logic.
+- `scrollarr/`: Core package containing all logic.
+  - `app.py`: FastAPI application entry point.
+  - `job_manager.py`: Background task scheduler.
+  - `story_manager.py`: Core logic for stories and providers.
+  - `database.py`: SQLAlchemy models.
+  - `ebook_builder.py`: EPUB/PDF generation logic.
+  - `sources/`: Provider implementations (RR, AO3, QQ).
+  - `templates/` & `static/`: Frontend assets.
 - `alembic/`: Database migrations.
+- `config/`: Configuration files.
+- `run.py`: Entry point script.
