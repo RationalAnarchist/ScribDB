@@ -1,5 +1,6 @@
 import json
 import os
+import shutil
 import logging
 
 logger = logging.getLogger(__name__)
@@ -7,6 +8,7 @@ logger = logging.getLogger(__name__)
 class ConfigManager:
     _instance = None
     CONFIG_FILE = "config/config.json"
+    EXAMPLE_CONFIG_FILE = "config/config.json.example"
     DEFAULT_CONFIG = {
         "download_path": "saved_stories",
         "min_delay": 2.0,
@@ -39,14 +41,33 @@ class ConfigManager:
         config = self.DEFAULT_CONFIG.copy()
 
         if not os.path.exists(self.CONFIG_FILE):
-            logger.info(f"Config file not found. Creating default at {self.CONFIG_FILE}")
-            self.save_config(config)
-            return config
+            if os.path.exists(self.EXAMPLE_CONFIG_FILE):
+                logger.info(f"Config file not found. Creating from example at {self.EXAMPLE_CONFIG_FILE}")
+                try:
+                    shutil.copy(self.EXAMPLE_CONFIG_FILE, self.CONFIG_FILE)
+                except Exception as e:
+                    logger.error(f"Failed to copy example config: {e}")
+            else:
+                logger.info(f"Config file not found. Creating default at {self.CONFIG_FILE}")
+                self.save_config(config)
+                return config
 
         try:
             with open(self.CONFIG_FILE, 'r') as f:
                 file_config = json.load(f)
                 config.update(file_config)
+
+            # Check for missing keys from example config (if available) to soft-update
+            if os.path.exists(self.EXAMPLE_CONFIG_FILE):
+                try:
+                    with open(self.EXAMPLE_CONFIG_FILE, 'r') as f:
+                        example_config = json.load(f)
+                        for k, v in example_config.items():
+                            if k not in config:
+                                config[k] = v
+                                logger.info(f"Added missing config key '{k}' from example.")
+                except Exception as e:
+                    logger.warning(f"Failed to read example config for updates: {e}")
 
             # Migration: filename_pattern -> compiled_filename_pattern
             if 'filename_pattern' in file_config and 'compiled_filename_pattern' not in file_config:
