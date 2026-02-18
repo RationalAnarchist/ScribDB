@@ -14,7 +14,7 @@ class BaseSource(ABC):
         pass
 
     @abstractmethod
-    def get_chapter_list(self, url: str) -> List[Dict]:
+    def get_chapter_list(self, url: str, **kwargs) -> List[Dict]:
         """Returns a list of chapter objects: {id, title, url}."""
         pass
 

@@ -230,6 +230,23 @@ class StoryManager:
         finally:
             session.close()
 
+    def _get_last_chapter_info(self, story):
+        """Helper to extract last chapter info for optimization."""
+        if not story.chapters:
+            return None
+
+        sorted_chapters = sorted(story.chapters, key=lambda c: c.index, reverse=True)
+        if sorted_chapters:
+            lc = sorted_chapters[0]
+            return {
+                'url': lc.source_url,
+                'title': lc.title,
+                'volume_title': lc.volume_title,
+                'volume_number': lc.volume_number,
+                'index': lc.index
+            }
+        return None
+
     def list_stories(self):
         """
         Lists all stories in the database with their download progress.
@@ -332,8 +349,11 @@ class StoryManager:
                     except Exception as meta_err:
                         logger.warning(f"Failed to update metadata for {story.title}: {meta_err}")
 
+                    # Determine last chapter for optimization
+                    last_chapter = self._get_last_chapter_info(story)
+
                     # Fetch current chapters from source
-                    remote_chapters = provider.get_chapter_list(story.source_url)
+                    remote_chapters = provider.get_chapter_list(story.source_url, last_chapter=last_chapter)
 
                     # Get existing chapters from DB
                     existing_chapter_urls = {c.source_url for c in story.chapters}
@@ -536,8 +556,11 @@ class StoryManager:
             # Fetch metadata and update story
             self._update_metadata(story, provider)
 
+            # Determine last chapter for optimization
+            last_chapter = self._get_last_chapter_info(story)
+
             # Fetch current chapters from source
-            remote_chapters = provider.get_chapter_list(story.source_url)
+            remote_chapters = provider.get_chapter_list(story.source_url, last_chapter=last_chapter)
 
             # Get existing chapters from DB
             existing_chapter_urls = {c.source_url for c in story.chapters}

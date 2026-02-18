@@ -94,7 +94,7 @@ class AO3Source(BaseSource):
             'publication_status': publication_status
         }
 
-    def get_chapter_list(self, url: str) -> List[Dict]:
+    def get_chapter_list(self, url: str, **kwargs) -> List[Dict]:
         # Handle /chapters/ urls by converting to work url
         work_id_match = re.search(r'/works/(\d+)', url)
         if not work_id_match:
