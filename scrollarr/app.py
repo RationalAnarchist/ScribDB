@@ -309,6 +309,11 @@ async def settings_page(request: Request):
     """Render the settings page."""
     return templates.TemplateResponse("settings.html", {"request": request})
 
+@app.get("/api-docs", response_class=HTMLResponse)
+async def api_docs_page(request: Request):
+    """Render the API documentation page."""
+    return templates.TemplateResponse("api_docs.html", {"request": request})
+
 @app.get("/sources", response_class=HTMLResponse)
 async def sources_page(request: Request):
     """Render the sources page."""

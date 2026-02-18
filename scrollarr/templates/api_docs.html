@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}API Documentation - Scrollarr{% endblock %}
+
+{% block content %}
+    <header class="mb-8">
+        <h1 class="text-3xl font-bold">API Documentation</h1>
+    </header>
+
+    <div class="space-y-6">
+        <!-- Interactive Docs Card -->
+        <div class="bg-gray-800 rounded-lg p-6 shadow-lg">
+            <h2 class="text-xl font-bold mb-4 text-gray-200">Interactive Documentation</h2>
+            <p class="text-gray-400 mb-6">
+                Scrollarr provides a fully interactive REST API documentation using Swagger UI and ReDoc.
+                You can test endpoints directly from the browser.
+            </p>
+            <div class="flex gap-4">
+                <a href="/docs" target="_blank" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded transition-colors flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                    </svg>
+                    Open Swagger UI
+                </a>
+                <a href="/redoc" target="_blank" class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-6 rounded transition-colors flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Open ReDoc
+                </a>
+            </div>
+        </div>
+
+        <!-- Examples Card -->
+        <div class="bg-gray-800 rounded-lg p-6 shadow-lg">
+            <h2 class="text-xl font-bold mb-4 text-gray-200">Examples</h2>
+
+            <div class="mb-8">
+                <h3 class="text-lg font-semibold text-gray-300 mb-2">Get System Status</h3>
+                <div class="bg-gray-900 rounded p-4 overflow-x-auto">
+                    <code class="text-green-400 text-sm">curl -X GET "http://localhost:8000/api/status"</code>
+                </div>
+            </div>
+
+            <div class="mb-8">
+                <h3 class="text-lg font-semibold text-gray-300 mb-2">Search for a Story</h3>
+                <div class="bg-gray-900 rounded p-4 overflow-x-auto">
+                    <code class="text-green-400 text-sm">curl -X GET "http://localhost:8000/api/search?query=mother+of+learning"</code>
+                </div>
+            </div>
+
+             <div class="mb-8">
+                <h3 class="text-lg font-semibold text-gray-300 mb-2">Add a New Story</h3>
+                <div class="bg-gray-900 rounded p-4 overflow-x-auto">
+                    <code class="text-green-400 text-sm">curl -X POST "http://localhost:8000/api/add" \<br>
+                    -H "Content-Type: application/json" \<br>
+                    -d '{"url": "https://www.royalroad.com/fiction/21220/mother-of-learning", "profile_id": 1}'</code>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
