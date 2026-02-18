@@ -172,13 +172,14 @@ class StoryManager:
                 published_date = chapter_data.get('published_date')
                 volume_title = chapter_data.get('volume_title')
                 volume_number = chapter_data.get('volume_number', 1)
+                idx = chapter_data.get('index', i + 1)
 
                 if c_url not in existing_urls:
                     new_chapter = Chapter(
                         title=chapter_data['title'],
                         source_url=c_url,
                         story_id=story.id,
-                        index=i + 1,
+                        index=idx,
                         status='pending',
                         published_date=published_date,
                         volume_title=volume_title,
@@ -189,8 +190,8 @@ class StoryManager:
                 else:
                     # Update index if needed
                     existing_chap = existing_urls[c_url]
-                    if existing_chap.index != i + 1:
-                        existing_chap.index = i + 1
+                    if existing_chap.index != idx:
+                        existing_chap.index = idx
                     # Update published_date if missing
                     if not existing_chap.published_date and published_date:
                         existing_chap.published_date = published_date
@@ -363,13 +364,14 @@ class StoryManager:
                         published_date = chap_data.get('published_date')
                         volume_title = chap_data.get('volume_title')
                         volume_number = chap_data.get('volume_number', 1)
+                        idx = chap_data.get('index', i + 1)
 
                         if chap_data['url'] not in existing_chapter_urls:
                             new_chapter = Chapter(
                                 title=chap_data['title'],
                                 source_url=chap_data['url'],
                                 story_id=story.id,
-                                index=i + 1,
+                                index=idx,
                                 status='pending',
                                 published_date=published_date,
                                 volume_title=volume_title,
@@ -391,8 +393,8 @@ class StoryManager:
                                      if not ec.published_date and published_date:
                                          ec.published_date = published_date
                                      # Update index
-                                     if ec.index != i + 1:
-                                         ec.index = i + 1
+                                     if ec.index != idx:
+                                         ec.index = idx
                                      if volume_title and ec.volume_title != volume_title:
                                          ec.volume_title = volume_title
                                      if volume_number and ec.volume_number != volume_number:
@@ -570,13 +572,14 @@ class StoryManager:
                 published_date = chap_data.get('published_date')
                 volume_title = chap_data.get('volume_title')
                 volume_number = chap_data.get('volume_number', 1)
+                idx = chap_data.get('index', i + 1)
 
                 if chap_data['url'] not in existing_chapter_urls:
                     new_chapter = Chapter(
                         title=chap_data['title'],
                         source_url=chap_data['url'],
                         story_id=story.id,
-                        index=i + 1,
+                        index=idx,
                         status='pending',
                         published_date=published_date,
                         volume_title=volume_title,
@@ -590,8 +593,8 @@ class StoryManager:
                          if ec.source_url == chap_data['url']:
                              if not ec.published_date and published_date:
                                  ec.published_date = published_date
-                             if ec.index != i + 1:
-                                 ec.index = i + 1
+                             if ec.index != idx:
+                                 ec.index = idx
                              if volume_title and ec.volume_title != volume_title:
                                  ec.volume_title = volume_title
                              if volume_number and ec.volume_number != volume_number:
