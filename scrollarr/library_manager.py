@@ -74,38 +74,80 @@ class LibraryManager:
         """Returns the directory where compiled ebooks are stored."""
         return self.get_story_path(story) / "compiled"
 
-    def get_compiled_filename(self, story, suffix: str, ext: str = 'epub', chapters: list = None) -> str:
+    def get_compiled_filename(self, story, suffix: str, ext: str = 'epub', chapters: list = None, file_type: str = 'legacy') -> str:
         """Returns the filename for a compiled ebook."""
-        template = self.config.get('compiled_filename_pattern', '{Title} - {Volume}')
 
+        # Select template based on file_type
+        if file_type == 'single':
+            template = self.config.get('single_chapter_name_format', '{Title} - {Index} - {Chapter}')
+        elif file_type == 'group':
+            template = self.config.get('chapter_group_name_format', '{Title} - {StartChapter} to {EndChapter}')
+        elif file_type == 'full':
+            template = self.config.get('full_story_name_format', '{Title} - Full story to {EndChapter}')
+        elif file_type == 'volume':
+            template = self.config.get('volume_name_format', '{Title} - {Volume} - {VolName}')
+        else:
+            # Fallback to legacy or volume default
+            template = self.config.get('compiled_filename_pattern', '{Title} - {Volume}')
+
+        # Initialize placeholders
         start_chap = '?'
         end_chap = '?'
+        chap_num = '?'
+        chap_name = '?'
+        vol_num = '?'
+        vol_name = ''
+
         if chapters and len(chapters) > 0:
-            # Check if chapters are objects or dicts
             first = chapters[0]
             last = chapters[-1]
+
+            # Handle object vs dict
             if hasattr(first, 'index'):
                  start_chap = first.index
                  end_chap = last.index
-            # If dicts, might not have index easily accessible unless passed differently
+                 chap_num = first.index
+                 chap_name = first.title
+                 vol_num = first.volume_number or '1'
+                 vol_name = first.volume_title or ''
+            elif isinstance(first, dict):
+                 start_chap = first.get('index', '?')
+                 end_chap = last.get('index', '?')
+                 chap_num = first.get('index', '?')
+                 chap_name = first.get('title', '?')
+                 vol_num = first.get('volume_number', '1')
+                 vol_name = first.get('volume_title', '')
 
-        filename = self.format_string(template, {
+        # Construct context with aliases
+        context = {
             'Title': story.title,
             'Author': story.author,
-            'Volume': suffix,
+            'Volume': suffix, # Legacy / Fallback
             'StoryTitle': story.title,
             'Id': story.id,
             'StartChapter': start_chap,
-            'EndChapter': end_chap
-        })
+            'EndChapter': end_chap,
+            # New placeholders
+            'chapNum': chap_num,
+            'chapName': chap_name,
+            'startChapNum': start_chap,
+            'endChapNum': end_chap,
+            'volNum': vol_num,
+            'volName': vol_name,
+            # Aliases for template consistency
+            'Index': chap_num,
+            'Chapter': chap_name
+        }
+
+        filename = self.format_string(template, context)
         if not filename.lower().endswith(f".{ext}"):
             filename += f".{ext}"
         return filename
 
-    def get_compiled_absolute_path(self, story, suffix: str, ext: str = 'epub', chapters: list = None) -> Path:
+    def get_compiled_absolute_path(self, story, suffix: str, ext: str = 'epub', chapters: list = None, file_type: str = 'legacy') -> Path:
         """Returns the full absolute path for a compiled ebook."""
         directory = self.get_compiled_dir(story)
-        filename = self.get_compiled_filename(story, suffix, ext, chapters)
+        filename = self.get_compiled_filename(story, suffix, ext, chapters, file_type)
         return directory / filename
 
     def ensure_directories(self, path: Path):

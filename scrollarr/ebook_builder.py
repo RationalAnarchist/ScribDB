@@ -267,7 +267,7 @@ class EbookBuilder:
             volume_title = chapters[0].volume_title
             suffix = volume_title if volume_title else f"Vol {volume_number}"
 
-            return self._compile_chapters(story, chapters, suffix)
+            return self._compile_chapters(story, chapters, suffix, file_type='volume')
 
         finally:
             session.close()
@@ -291,12 +291,35 @@ class EbookBuilder:
             if not chapters:
                 raise ValueError(f"No chapters found for story {story_id}")
 
-            return self._compile_chapters(story, chapters, "Full")
+            return self._compile_chapters(story, chapters, "Full", file_type='full')
 
         finally:
             session.close()
 
-    def _compile_chapters(self, story, chapters, suffix: str) -> str:
+    def compile_custom_range(self, story_id: int, chapters: list, file_type: str = 'group') -> str:
+        """
+        Compiles a custom list of chapters.
+        """
+        from .database import SessionLocal, Story
+        session = SessionLocal()
+        try:
+            story = session.query(Story).filter(Story.id == story_id).first()
+            if not story:
+                 raise ValueError(f"Story with ID {story_id} not found")
+
+            # Determine suffix for book title (not filename)
+            if file_type == 'single' and len(chapters) == 1:
+                suffix = f"{chapters[0].title}"
+            elif hasattr(chapters[0], 'index') and hasattr(chapters[-1], 'index'):
+                suffix = f"Chapters {chapters[0].index}-{chapters[-1].index}"
+            else:
+                suffix = "New Chapters"
+
+            return self._compile_chapters(story, chapters, suffix, file_type=file_type)
+        finally:
+            session.close()
+
+    def _compile_chapters(self, story, chapters, suffix: str, file_type: str = 'legacy') -> str:
         """
         Internal method to compile a list of chapters based on story profile.
         """
@@ -324,7 +347,7 @@ class EbookBuilder:
             output_format = story.profile.output_format.lower()
 
         # Use LibraryManager
-        output_path = self.library_manager.get_compiled_absolute_path(story, suffix, ext=output_format, chapters=chapters)
+        output_path = self.library_manager.get_compiled_absolute_path(story, suffix, ext=output_format, chapters=chapters, file_type=file_type)
         self.library_manager.ensure_directories(output_path.parent)
 
         # Get profile CSS

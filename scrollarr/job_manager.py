@@ -149,6 +149,9 @@ class JobManager:
         """
         logger.info("Checking download queue for pending chapters...")
 
+        # Track downloaded chapters per story for batch compilation
+        downloaded_chapters = {} # {story_id: [chapter_obj, ...]}
+
         while self.running:
             session = SessionLocal()
             try:
@@ -225,6 +228,22 @@ class JobManager:
                     session.commit()
                     logger.info(f"Successfully downloaded: {chapter.title}")
 
+                    # Track for batch compilation (using detached object attributes)
+                    # We create a simple copy to avoid session issues
+                    from types import SimpleNamespace
+                    chapter_info = SimpleNamespace(
+                        id=chapter.id,
+                        title=chapter.title,
+                        index=chapter.index,
+                        volume_number=chapter.volume_number,
+                        volume_title=chapter.volume_title,
+                        local_path=chapter.local_path
+                    )
+
+                    if story.id not in downloaded_chapters:
+                        downloaded_chapters[story.id] = []
+                    downloaded_chapters[story.id].append(chapter_info)
+
                     # Check for remaining pending/failed chapters for this story
                     remaining_count = session.query(Chapter).filter(
                         Chapter.story_id == story.id,
@@ -232,27 +251,62 @@ class JobManager:
                     ).count()
 
                     if remaining_count == 0:
-                        logger.info(f"Story {story.title} download complete (no pending/failed chapters). Compiling full ebook...")
+                        logger.info(f"Story {story.title} download complete (no pending/failed chapters). Compiling ebook...")
 
                         try:
-                            # Compile full story
+                            # Compile ebook
                             from .ebook_builder import EbookBuilder
                             builder = EbookBuilder()
-                            ebook_path = builder.compile_full_story(story.id)
 
-                            logger.info(f"Full story compiled at {ebook_path}")
+                            batch = downloaded_chapters.get(story.id, [])
+                            batch.sort(key=lambda x: x.index if hasattr(x, 'index') else 0)
 
-                            # Notify success with full ebook
+                            total_chapters = session.query(Chapter).filter(Chapter.story_id == story.id).count()
+
+                            # Determine type
+                            file_type = 'group'
+                            msg_title = "New Chapters"
+                            ebook_path = ""
+
+                            # If batch covers almost all chapters (allow small margin for retries?), treat as full
+                            if len(batch) >= total_chapters:
+                                file_type = 'full'
+                                msg_title = "Full Story Download"
+                                ebook_path = builder.compile_full_story(story.id)
+                            else:
+                                if len(batch) == 1:
+                                    file_type = 'single'
+                                    msg_title = f"New Chapter: {batch[0].title}"
+                                else:
+                                    file_type = 'group'
+                                    msg_title = f"New Chapters ({len(batch)})"
+
+                                if batch:
+                                    ebook_path = builder.compile_custom_range(story.id, batch, file_type=file_type)
+                                else:
+                                    # Fallback if batch empty (should not happen in normal flow)
+                                    logger.warning("Batch empty but remaining count 0. Compiling full story.")
+                                    file_type = 'full'
+                                    ebook_path = builder.compile_full_story(story.id)
+
+                            logger.info(f"Ebook compiled at {ebook_path} (Type: {file_type})")
+
+                            # Notify success
                             self.notification_manager.dispatch('on_download', {
                                 'story_title': story.title,
-                                'chapter_title': "Full Story Download",
+                                'chapter_title': msg_title,
                                 'chapter_id': chapter.id,
                                 'story_id': story.id,
-                                'file_path': ebook_path
+                                'file_path': ebook_path,
+                                'new_chapters_count': len(batch)
                             })
 
+                            # Clear batch for this story
+                            if story.id in downloaded_chapters:
+                                del downloaded_chapters[story.id]
+
                         except Exception as e:
-                            logger.error(f"Failed to compile full story ebook: {e}")
+                            logger.error(f"Failed to compile ebook: {e}")
                             self.notification_manager.dispatch('on_failure', {
                                 'story_title': story.title,
                                 'chapter_title': "Ebook Compilation",
