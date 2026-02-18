@@ -1,0 +1,222 @@
+{% extends "base.html" %}
+
+{% block title %}Import - Scrollarr{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <div class="flex items-center justify-between mb-8">
+        <h1 class="text-3xl font-bold text-white">Import Library</h1>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <!-- Scan Section -->
+        <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
+            <h2 class="text-xl font-semibold mb-4 text-white">Scan Local Folder</h2>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-400 mb-1">Folder Path</label>
+                    <input type="text" id="scan-path" placeholder="/path/to/library"
+                           class="w-full bg-gray-900 border border-gray-700 rounded-md px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <button onclick="scanFolder(event)"
+                        class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors">
+                    Scan
+                </button>
+            </div>
+        </div>
+
+        <!-- Upload Section -->
+        <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
+            <h2 class="text-xl font-semibold mb-4 text-white">Upload File</h2>
+            <div class="space-y-4">
+                <div class="border-2 border-dashed border-gray-700 rounded-lg p-6 text-center hover:border-blue-500 transition-colors cursor-pointer" onclick="document.getElementById('file-upload').click()">
+                    <input type="file" id="file-upload" class="hidden" accept=".epub,.pdf,.html,.htm" onchange="uploadFile()">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-gray-400 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                    </svg>
+                    <p class="text-sm text-gray-400">Click to upload EPUB, PDF, or HTML</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results Section -->
+    <div id="results-section" class="hidden space-y-6">
+        <h3 class="text-xl font-semibold text-white">Found Items</h3>
+        <div id="results-list" class="space-y-4">
+            <!-- Items injected here -->
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentItems = [];
+
+    function escapeHtml(text) {
+        if (!text) return text;
+        return String(text)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+    async function scanFolder(event) {
+        const path = document.getElementById('scan-path').value;
+        if (!path) return;
+
+        const btn = event.target;
+        const originalText = btn.innerText;
+        btn.innerText = 'Scanning...';
+        btn.disabled = true;
+
+        try {
+            const response = await fetch('/api/import/scan', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ path: path })
+            });
+            const results = await response.json();
+            displayResults(results);
+        } catch (error) {
+            console.error('Scan failed:', error);
+            alert('Scan failed: ' + error.message);
+        } finally {
+            btn.innerText = originalText;
+            btn.disabled = false;
+        }
+    }
+
+    async function uploadFile() {
+        const fileInput = document.getElementById('file-upload');
+        const file = fileInput.files[0];
+        if (!file) return;
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+            const response = await fetch('/api/import/upload', {
+                method: 'POST',
+                body: formData
+            });
+            const results = await response.json();
+            displayResults(results);
+        } catch (error) {
+            console.error('Upload failed:', error);
+            alert('Upload failed: ' + error.message);
+        }
+    }
+
+    function displayResults(items) {
+        currentItems = items;
+        const container = document.getElementById('results-list');
+        const section = document.getElementById('results-section');
+        container.innerHTML = '';
+        section.classList.remove('hidden');
+
+        if (items.length === 0) {
+            container.innerHTML = '<p class="text-gray-400 text-center py-4">No items found.</p>';
+            return;
+        }
+
+        items.forEach((item, index) => {
+            const el = document.createElement('div');
+            el.className = 'bg-gray-800 rounded-lg p-4 border border-gray-700 flex flex-col gap-4';
+            el.innerHTML = `
+                <div class="flex items-start justify-between">
+                    <div>
+                        <h4 class="font-medium text-white text-lg">${escapeHtml(item.title)}</h4>
+                        <p class="text-gray-400 text-sm">Author: ${escapeHtml(item.author)}</p>
+                        <p class="text-gray-500 text-xs mt-1 truncate">${escapeHtml(item.path)}</p>
+                    </div>
+                    <button onclick="searchProvider(${index})"
+                            class="bg-blue-600 hover:bg-blue-700 text-white text-sm px-3 py-1 rounded transition-colors">
+                        Find Match
+                    </button>
+                </div>
+                <div id="matches-${index}" class="hidden mt-2 pt-2 border-t border-gray-700">
+                    <p class="text-sm text-gray-400 mb-2">Select a match to import:</p>
+                    <div id="matches-list-${index}" class="space-y-2"></div>
+                </div>
+            `;
+            container.appendChild(el);
+        });
+    }
+
+    async function searchProvider(index) {
+        const item = currentItems[index];
+        const listDiv = document.getElementById(`matches-list-${index}`);
+        const containerDiv = document.getElementById(`matches-${index}`);
+
+        containerDiv.classList.remove('hidden');
+        listDiv.innerHTML = '<p class="text-xs text-gray-500">Searching...</p>';
+
+        try {
+            const response = await fetch(`/api/search?query=${encodeURIComponent(item.title)}`);
+            const results = await response.json();
+
+            listDiv.innerHTML = '';
+            if (results.length === 0) {
+                listDiv.innerHTML = '<p class="text-xs text-yellow-500">No matches found.</p>';
+                return;
+            }
+
+            results.forEach(match => {
+                const row = document.createElement('div');
+                row.className = 'flex items-center justify-between bg-gray-900 p-2 rounded';
+
+                const info = document.createElement('div');
+                info.className = 'overflow-hidden';
+                info.innerHTML = `
+                    <p class="text-sm font-medium text-white truncate">${escapeHtml(match.title)}</p>
+                    <p class="text-xs text-gray-400 truncate">${escapeHtml(match.author)} • ${escapeHtml(match.provider)}</p>
+                `;
+
+                const btn = document.createElement('button');
+                btn.className = 'ml-2 bg-green-600 hover:bg-green-700 text-white text-xs px-2 py-1 rounded whitespace-nowrap';
+                btn.innerText = 'Import';
+                // Use closure to capture variables
+                btn.onclick = () => confirmImport(match.url, item.path, item.is_temp);
+
+                row.appendChild(info);
+                row.appendChild(btn);
+                listDiv.appendChild(row);
+            });
+        } catch (error) {
+            console.error('Search failed:', error);
+            listDiv.innerHTML = '<p class="text-xs text-red-500">Search failed.</p>';
+        }
+    }
+
+    async function confirmImport(url, path, is_temp) {
+        if (!confirm('Import this story? This will create a new entry and attempt to copy the file.')) return;
+
+        try {
+            const response = await fetch('/api/import/confirm', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    url: url,
+                    source_path: path,
+                    copy_file: true,
+                    is_temp: is_temp
+                })
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                alert('Import successful!');
+                window.location.href = `/story/${data.story_id}`;
+            } else {
+                const err = await response.json();
+                throw new Error(err.detail || 'Import failed');
+            }
+        } catch (error) {
+            console.error('Import failed:', error);
+            alert('Import failed: ' + error.message);
+        }
+    }
+</script>
+{% endblock %}
