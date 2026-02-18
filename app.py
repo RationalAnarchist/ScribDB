@@ -5,7 +5,7 @@ import shutil
 import time
 from typing import Optional, List, Dict
 
-from fastapi import FastAPI, Depends, HTTPException, status, Request, Response
+from fastapi import FastAPI, Depends, HTTPException, status, Request, Response, UploadFile, File
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
@@ -16,6 +16,8 @@ from pydantic import BaseModel
 from database import SessionLocal, Story, Chapter, Source, DownloadHistory, EbookProfile, NotificationSettings
 from story_manager import StoryManager
 from library_manager import LibraryManager
+from import_manager import ImportManager
+import uuid
 from ebook_builder import EbookBuilder
 from job_manager import JobManager
 from notifications import NotificationManager
@@ -47,6 +49,13 @@ try:
 except Exception as e:
     logger.error(f"Failed to initialize StoryManager: {e}")
     story_manager = None
+
+# Initialize ImportManager
+try:
+    import_manager = ImportManager()
+except Exception as e:
+    logger.error(f"Failed to initialize ImportManager: {e}")
+    import_manager = None
 
 # Dependency for DB Session
 def get_db():
@@ -831,6 +840,78 @@ async def test_notification(request: TestNotificationRequest):
         return {"message": "Test notification sent"}
     except Exception as e:
         logger.error(f"Test notification failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/import", response_class=HTMLResponse)
+async def import_page(request: Request):
+    """Render the import page."""
+    return templates.TemplateResponse("import.html", {"request": request})
+
+class ScanRequest(BaseModel):
+    path: str
+
+@app.post("/api/import/scan")
+async def scan_import(request: ScanRequest):
+    """Scan directory for importable files."""
+    if not import_manager:
+         raise HTTPException(status_code=500, detail="ImportManager not initialized")
+    try:
+        results = import_manager.scan_directory(request.path)
+        # Mark as not temporary
+        for r in results:
+            r['is_temp'] = False
+        return results
+    except Exception as e:
+        logger.error(f"Scan error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/import/upload")
+async def upload_import(file: UploadFile = File(...)):
+    """Handle uploaded file for import."""
+    if not import_manager:
+         raise HTTPException(status_code=500, detail="ImportManager not initialized")
+
+    try:
+        # Save to temp
+        temp_dir = Path("temp_uploads")
+        temp_dir.mkdir(exist_ok=True)
+        # Generate safe unique filename
+        ext = Path(file.filename).suffix
+        unique_name = f"{uuid.uuid4()}{ext}"
+        temp_path = temp_dir / unique_name
+
+        with open(temp_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+
+        metadata = import_manager.extract_metadata(temp_path)
+        metadata['is_temp'] = True
+        return [metadata] # Return as list to match scan format
+    except Exception as e:
+        logger.error(f"Upload error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+class ImportConfirmRequest(BaseModel):
+    url: str
+    source_path: Optional[str] = None
+    copy_file: bool = False
+    is_temp: bool = False
+
+@app.post("/api/import/confirm")
+async def confirm_import(request: ImportConfirmRequest):
+    """Confirm and execute import."""
+    if not import_manager:
+         raise HTTPException(status_code=500, detail="ImportManager not initialized")
+
+    try:
+        story_id = import_manager.import_story(
+            request.url,
+            request.source_path,
+            request.copy_file,
+            delete_source=request.is_temp
+        )
+        return {"message": "Import successful", "story_id": story_id}
+    except Exception as e:
+        logger.error(f"Import execution error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/migration/check")
