@@ -11,24 +11,44 @@
         <h2 class="text-xl font-bold mb-4 text-gray-200">General</h2>
 
         <form id="settings-form" onsubmit="saveSettings(event)">
-            <div class="mb-6">
+            <div class="mb-6 hidden">
                 <label class="block text-gray-300 text-sm font-bold mb-2" for="download-path">
-                    Download Location
+                    Legacy Download Location
                 </label>
                 <input type="text" id="download-path" name="download_path" class="w-full p-3 rounded bg-gray-700 text-white border border-gray-600 focus:outline-none focus:border-blue-500 transition-colors" placeholder="e.g. saved_stories">
-                <p class="text-xs text-gray-500 mt-2">The directory where chapters will be downloaded.</p>
+                <p class="text-xs text-gray-500 mt-2">Legacy setting. Use Library Path below.</p>
             </div>
 
             <h2 class="text-xl font-bold mb-4 text-gray-200 mt-8">Library Organization</h2>
             <div class="mb-4">
-                <label class="block text-gray-300 text-sm font-bold mb-2" for="library-path">Library Path</label>
+                <label class="block text-gray-300 text-sm font-bold mb-2" for="library-path">Library Root Path</label>
                 <input type="text" id="library-path" name="library_path" class="w-full p-3 rounded bg-gray-700 text-white border border-gray-600 focus:outline-none focus:border-blue-500 transition-colors" placeholder="e.g. library">
-                <p class="text-xs text-gray-500 mt-2">The directory where generated EPUBs will be saved.</p>
+                <p class="text-xs text-gray-500 mt-2">The root directory for your library.</p>
             </div>
+
+            <div class="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label class="block text-gray-300 text-sm font-bold mb-2" for="story-folder-format">Story Folder Format</label>
+                    <input type="text" id="story-folder-format" name="story_folder_format" class="w-full p-3 rounded bg-gray-700 text-white border border-gray-600 focus:outline-none focus:border-blue-500 transition-colors" placeholder="{Title}">
+                    <p class="text-xs text-gray-500 mt-2">Vars: {Title}, {Author}, {Id}</p>
+                </div>
+                <div>
+                    <label class="block text-gray-300 text-sm font-bold mb-2" for="volume-folder-format">Volume Folder Format</label>
+                    <input type="text" id="volume-folder-format" name="volume_folder_format" class="w-full p-3 rounded bg-gray-700 text-white border border-gray-600 focus:outline-none focus:border-blue-500 transition-colors" placeholder="Volume {Volume}">
+                    <p class="text-xs text-gray-500 mt-2">Vars: {Volume}, {Title}</p>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-gray-300 text-sm font-bold mb-2" for="chapter-file-format">Chapter File Format</label>
+                <input type="text" id="chapter-file-format" name="chapter_file_format" class="w-full p-3 rounded bg-gray-700 text-white border border-gray-600 focus:outline-none focus:border-blue-500 transition-colors" placeholder="{Index} - {Title}">
+                <p class="text-xs text-gray-500 mt-2">Vars: {Index}, {Title}, {Volume}</p>
+            </div>
+
             <div class="mb-6">
-                <label class="block text-gray-300 text-sm font-bold mb-2" for="filename-pattern">Filename Pattern</label>
-                <input type="text" id="filename-pattern" name="filename_pattern" class="w-full p-3 rounded bg-gray-700 text-white border border-gray-600 focus:outline-none focus:border-blue-500 transition-colors" placeholder="e.g. {Title} - Vol {Volume}">
-                <p class="text-xs text-gray-500 mt-2">Available variables: {Title}, {Author}, {Volume}</p>
+                <label class="block text-gray-300 text-sm font-bold mb-2" for="compiled-filename-pattern">Compiled Filename Format</label>
+                <input type="text" id="compiled-filename-pattern" name="compiled_filename_pattern" class="w-full p-3 rounded bg-gray-700 text-white border border-gray-600 focus:outline-none focus:border-blue-500 transition-colors" placeholder="{Title} - Vol {Volume}">
+                <p class="text-xs text-gray-500 mt-2">Vars: {Title}, {Author}, {Volume}</p>
             </div>
 
             <h2 class="text-xl font-bold mb-4 text-gray-200 mt-8">Network & Politeness</h2>
@@ -99,7 +119,14 @@
 
                 document.getElementById('download-path').value = data.download_path || '';
                 document.getElementById('library-path').value = data.library_path || 'library';
-                document.getElementById('filename-pattern').value = data.filename_pattern || '{Title} - Vol {Volume}';
+
+                // Map old filename_pattern if compiled_filename_pattern missing (handled by backend but safe to check)
+                document.getElementById('compiled-filename-pattern').value = data.compiled_filename_pattern || data.filename_pattern || '{Title} - Vol {Volume}';
+
+                document.getElementById('story-folder-format').value = data.story_folder_format || '{Title}';
+                document.getElementById('chapter-file-format').value = data.chapter_file_format || '{Index} - {Title}';
+                document.getElementById('volume-folder-format').value = data.volume_folder_format || 'Volume {Volume}';
+
                 document.getElementById('min-delay').value = data.min_delay || 2.0;
                 document.getElementById('max-delay').value = data.max_delay || 5.0;
                 document.getElementById('user-agent').value = data.user_agent || '';
@@ -127,7 +154,10 @@
             const payload = {
                 download_path: document.getElementById('download-path').value,
                 library_path: document.getElementById('library-path').value,
-                filename_pattern: document.getElementById('filename-pattern').value,
+                compiled_filename_pattern: document.getElementById('compiled-filename-pattern').value,
+                story_folder_format: document.getElementById('story-folder-format').value,
+                chapter_file_format: document.getElementById('chapter-file-format').value,
+                volume_folder_format: document.getElementById('volume-folder-format').value,
                 min_delay: parseFloat(document.getElementById('min-delay').value),
                 max_delay: parseFloat(document.getElementById('max-delay').value),
                 user_agent: document.getElementById('user-agent').value,

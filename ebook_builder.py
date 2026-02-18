@@ -4,6 +4,7 @@ from ebooklib import epub
 from typing import List, Dict, Optional
 from bs4 import BeautifulSoup
 import re
+from library_manager import LibraryManager
 
 # ReportLab imports for PDF generation
 try:
@@ -19,7 +20,7 @@ except ImportError:
 
 class EbookBuilder:
     def __init__(self):
-        pass
+        self.library_manager = LibraryManager()
 
     def make_epub(self, title: str, author: str, chapters: List[Dict[str, str]], output_path: str, cover_path: Optional[str] = None, css: Optional[str] = None):
         """
@@ -299,8 +300,6 @@ class EbookBuilder:
         """
         Internal method to compile a list of chapters based on story profile.
         """
-        from config import config_manager
-
         # Prepare content
         epub_chapters = []
         for chapter in chapters:
@@ -319,35 +318,14 @@ class EbookBuilder:
 
         book_title = f"{story.title} - {suffix}"
 
-        # Get library path and pattern
-        library_path = config_manager.get('library_path', 'library')
-        filename_pattern = config_manager.get('filename_pattern', '{Title} - {Volume}')
-
         # Determine Format
         output_format = 'epub'
         if story.profile:
             output_format = story.profile.output_format.lower()
 
-        # Create filename
-        filename = filename_pattern.replace('{Title}', story.title)\
-                                   .replace('{Author}', story.author)\
-                                   .replace('{Volume}', suffix)
-
-        # Sanitize filename
-        safe_filename = "".join([c for c in filename if c.isalnum() or c in (' ', '-', '_', '.')]).strip()
-
-        # Ensure extension matches format
-        if not safe_filename.lower().endswith(f".{output_format}"):
-            safe_filename += f".{output_format}"
-
-        # Ensure directory exists
-        if not os.path.exists(library_path):
-            try:
-                os.makedirs(library_path)
-            except Exception as e:
-                print(f"Error creating library directory: {e}")
-
-        output_path = os.path.join(library_path, safe_filename)
+        # Use LibraryManager
+        output_path = self.library_manager.get_compiled_absolute_path(story, suffix, ext=output_format, chapters=chapters)
+        self.library_manager.ensure_directories(output_path.parent)
 
         # Get profile CSS
         profile_css = None
@@ -359,8 +337,8 @@ class EbookBuilder:
             page_size = 'A4'
             if story.profile and story.profile.pdf_page_size:
                 page_size = story.profile.pdf_page_size
-            self.make_pdf(book_title, story.author, epub_chapters, output_path, story.cover_path, css=profile_css, page_size=page_size)
+            self.make_pdf(book_title, story.author, epub_chapters, str(output_path), story.cover_path, css=profile_css, page_size=page_size)
         else:
-            self.make_epub(book_title, story.author, epub_chapters, output_path, story.cover_path, css=profile_css)
+            self.make_epub(book_title, story.author, epub_chapters, str(output_path), story.cover_path, css=profile_css)
 
-        return output_path
+        return str(output_path)

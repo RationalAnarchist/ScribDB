@@ -15,6 +15,7 @@ from pydantic import BaseModel
 
 from database import SessionLocal, Story, Chapter, Source, DownloadHistory, EbookProfile, NotificationSettings
 from story_manager import StoryManager
+from library_manager import LibraryManager
 from ebook_builder import EbookBuilder
 from job_manager import JobManager
 from notifications import NotificationManager
@@ -72,7 +73,10 @@ class SettingsRequest(BaseModel):
     database_url: str = "sqlite:///library.db"
     log_level: str = "INFO"
     library_path: str = "library"
-    filename_pattern: str = "{Title} - Vol {Volume}"
+    compiled_filename_pattern: str = "{Title} - Vol {Volume}"
+    story_folder_format: str = "{Title}"
+    chapter_file_format: str = "{Index} - {Title}"
+    volume_folder_format: str = "Volume {Volume}"
 
 class ProfileCreate(BaseModel):
     name: str
@@ -414,7 +418,10 @@ async def update_settings(settings: SettingsRequest):
         config_manager.set("database_url", settings.database_url)
         config_manager.set("log_level", settings.log_level)
         config_manager.set("library_path", settings.library_path)
-        config_manager.set("filename_pattern", settings.filename_pattern)
+        config_manager.set("compiled_filename_pattern", settings.compiled_filename_pattern)
+        config_manager.set("story_folder_format", settings.story_folder_format)
+        config_manager.set("chapter_file_format", settings.chapter_file_format)
+        config_manager.set("volume_folder_format", settings.volume_folder_format)
 
         # Update jobs with new settings
         if job_manager:
@@ -825,3 +832,43 @@ async def test_notification(request: TestNotificationRequest):
     except Exception as e:
         logger.error(f"Test notification failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/migration/check")
+async def check_migration(db: Session = Depends(get_db)):
+    """Check if library migration is needed."""
+    stories_count = db.query(Story).count()
+    if stories_count == 0:
+        return {"migration_needed": False}
+
+    old_path = config_manager.get('download_path', 'verification_downloads')
+    if os.path.exists(old_path):
+        import glob
+        # Check for directories starting with a digit (ID)
+        candidates = glob.glob(os.path.join(old_path, "[0-9]*_*"))
+        if candidates:
+            return {"migration_needed": True}
+
+    return {"migration_needed": False}
+
+@app.post("/api/migration/start")
+def start_migration(db: Session = Depends(get_db)):
+    """Start library migration."""
+    try:
+        # Pause background jobs to prevent conflicts
+        if job_manager:
+            job_manager.pause()
+
+        stories = db.query(Story).all()
+        lm = LibraryManager()
+        success = 0
+        total = len(stories)
+
+        for story in stories:
+            if lm.migrate_story(db, story):
+                success += 1
+
+        return {"message": f"Migrated {success}/{total} stories successfully."}
+    finally:
+        # Resume background jobs
+        if job_manager:
+            job_manager.resume()

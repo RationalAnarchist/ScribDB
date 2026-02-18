@@ -16,7 +16,12 @@ class ConfigManager:
         "worker_sleep_min": 30.0,
         "worker_sleep_max": 60.0,
         "database_url": "sqlite:///library.db",
-        "log_level": "INFO"
+        "log_level": "INFO",
+        "library_path": "library",
+        "story_folder_format": "{Title} ({Id})",
+        "chapter_file_format": "{Index} - {Title}",
+        "volume_folder_format": "Volume {Volume}",
+        "compiled_filename_pattern": "{Title} - Vol {Volume}"
     }
 
     def __new__(cls):
@@ -38,6 +43,11 @@ class ConfigManager:
             with open(self.CONFIG_FILE, 'r') as f:
                 file_config = json.load(f)
                 config.update(file_config)
+
+            # Migration: filename_pattern -> compiled_filename_pattern
+            if 'filename_pattern' in file_config and 'compiled_filename_pattern' not in file_config:
+                 config['compiled_filename_pattern'] = file_config['filename_pattern']
+
             return config
         except Exception as e:
             logger.error(f"Failed to load config file: {e}. Using defaults.")

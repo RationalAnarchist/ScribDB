@@ -138,10 +138,65 @@
         <a href="/add" class="mt-4 text-blue-500 hover:text-blue-400">Add your first story &rarr;</a>
     </div>
     {% endif %}
+
+    <!-- Migration Modal -->
+    <div id="migration-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-gray-800 p-8 rounded-lg shadow-xl max-w-lg w-full">
+            <h2 class="text-2xl font-bold mb-4 text-white">Library Update Required</h2>
+            <p class="text-gray-300 mb-6">
+                We've updated the library structure to be more organized.
+                We found existing files in the legacy format. Would you like to migrate them to the new structure now?
+            </p>
+            <div class="flex justify-end gap-4">
+                <button onclick="skipMigration()" class="px-4 py-2 text-gray-400 hover:text-white">Skip for Now</button>
+                <button onclick="startMigration()" id="btn-migrate" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded">Migrate Files</button>
+            </div>
+            <div id="migration-progress" class="hidden mt-4">
+                <p class="text-blue-400 animate-pulse">Migrating files... This may take a moment.</p>
+            </div>
+        </div>
+    </div>
 {% endblock %}
 
 {% block scripts %}
     <script>
+        // Migration Logic
+        async function checkMigration() {
+            try {
+                const response = await fetch('/api/migration/check');
+                const data = await response.json();
+                if (data.migration_needed) {
+                    document.getElementById('migration-modal').classList.remove('hidden');
+                }
+            } catch (err) {
+                console.error("Migration check failed:", err);
+            }
+        }
+
+        async function startMigration() {
+            const btn = document.getElementById('btn-migrate');
+            const progress = document.getElementById('migration-progress');
+            btn.disabled = true;
+            btn.innerText = "Migrating...";
+            progress.classList.remove('hidden');
+
+            try {
+                const response = await fetch('/api/migration/start', { method: 'POST' });
+                const data = await response.json();
+                alert(data.message);
+                location.reload();
+            } catch (err) {
+                alert("Migration failed: " + err);
+                btn.disabled = false;
+                btn.innerText = "Migrate Files";
+                progress.classList.add('hidden');
+            }
+        }
+
+        function skipMigration() {
+             document.getElementById('migration-modal').classList.add('hidden');
+        }
+
         // View Toggle Logic
         function toggleView(mode) {
             const grid = document.getElementById('story-grid');
@@ -171,6 +226,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             const savedView = localStorage.getItem('libraryView') || 'grid';
             toggleView(savedView);
+            checkMigration();
         });
 
         // Notification Toggle Logic

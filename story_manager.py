@@ -12,6 +12,7 @@ from sources.questionablequesting import QuestionableQuestingSource, Questionabl
 from database import Story, Chapter, Source, SessionLocal, init_db, engine, DownloadHistory
 from config import config_manager
 from notifications import NotificationManager
+from library_manager import LibraryManager
 import shutil
 import glob
 
@@ -29,6 +30,7 @@ class StoryManager:
 
         self.source_manager = SourceManager()
         self.notification_manager = NotificationManager()
+        self.library_manager = LibraryManager()
         self.reload_providers()
         logger.info("StoryManager initialized and providers registered.")
 
@@ -279,14 +281,12 @@ class StoryManager:
             from ebook_builder import EbookBuilder
             builder = EbookBuilder()
 
-            safe_title = "".join([c for c in story.title if c.isalpha() or c.isdigit() or c==' ']).rstrip().replace(' ', '_')
-            if not safe_title:
-                safe_title = f"story_{story_id}"
+            # Use LibraryManager for output path
+            output_path = self.library_manager.get_compiled_absolute_path(story, "Full", chapters=chapters)
+            self.library_manager.ensure_directories(output_path.parent)
 
-            output_path = f"{safe_title}.epub"
-
-            builder.make_epub(story.title, story.author, chapter_data, output_path, story.cover_path)
-            return output_path
+            builder.make_epub(story.title, story.author, chapter_data, str(output_path), story.cover_path)
+            return str(output_path)
         finally:
             session.close()
 
@@ -434,26 +434,19 @@ class StoryManager:
 
             logger.info(f"Found {len(missing_chapters)} chapters to download.")
 
-            # Ensure directory exists
-            # Create a safe directory name from title
-            safe_title = "".join([c for c in story.title if c.isalpha() or c.isdigit() or c==' ']).rstrip()
-            story_dir = os.path.join(config_manager.get('download_path'), f"{story_id}_{safe_title.replace(' ', '_')}")
-            os.makedirs(story_dir, exist_ok=True)
-
             for chapter in missing_chapters:
                 logger.info(f"Downloading chapter: {chapter.title}")
                 try:
                     content = provider.get_chapter_content(chapter.source_url)
 
-                    # Create filename
-                    safe_chapter_title = "".join([c for c in chapter.title if c.isalpha() or c.isdigit() or c==' ']).rstrip()
-                    filename = f"{chapter.id}_{safe_chapter_title.replace(' ', '_')}.html"
-                    filepath = os.path.join(story_dir, filename)
+                    # Determine path using LibraryManager
+                    filepath = self.library_manager.get_chapter_absolute_path(story, chapter)
+                    self.library_manager.ensure_directories(filepath.parent)
 
                     with open(filepath, 'w', encoding='utf-8') as f:
                         f.write(content)
 
-                    chapter.local_path = filepath
+                    chapter.local_path = str(filepath)
                     chapter.is_downloaded = True
                     chapter.status = 'downloaded'
                     session.commit() # Commit after each chapter to save progress
@@ -691,61 +684,25 @@ class StoryManager:
             if delete_content:
                 logger.info(f"Deleting content for story '{story.title}'...")
 
-                # 1. Delete source files (chapters)
-                download_path = config_manager.get('download_path')
-
-                # Construct expected directory name
-                safe_title = "".join([c for c in story.title if c.isalpha() or c.isdigit() or c==' ']).rstrip()
-                story_dir_name = f"{story_id}_{safe_title.replace(' ', '_')}"
-                story_path = os.path.join(download_path, story_dir_name)
-
-                # Primary delete
-                if os.path.exists(story_path):
+                # Delete new structure
+                story_path = self.library_manager.get_story_path(story)
+                if story_path.exists():
                     try:
                         shutil.rmtree(story_path)
-                        logger.info(f"Deleted directory: {story_path}")
+                        logger.info(f"Deleted story directory: {story_path}")
                     except Exception as e:
                         logger.error(f"Failed to delete directory {story_path}: {e}")
 
-                # Fallback: find any directory starting with ID
-                # This handles cases where title might have changed
+                # Cleanup Legacy Paths (Best Effort)
+                download_path = config_manager.get('download_path', 'verification_downloads')
                 try:
                     candidates = glob.glob(os.path.join(download_path, f"{story_id}_*"))
                     for cand in candidates:
                         if os.path.isdir(cand):
                             shutil.rmtree(cand)
-                            logger.info(f"Deleted fallback directory: {cand}")
+                            logger.info(f"Deleted legacy directory: {cand}")
                 except Exception as e:
                      logger.error(f"Error during fallback deletion: {e}")
-
-                # 2. Delete generated ebooks
-                library_path = config_manager.get('library_path', 'library')
-                filename_pattern = config_manager.get('filename_pattern', '{Title} - Vol {Volume}')
-
-                # Identify volumes
-                volumes = set(c.volume_number for c in story.chapters if c.volume_number)
-                if not volumes:
-                    volumes = {1}
-
-                suffixes = [f"Vol {v}" for v in volumes] + ["Full"]
-
-                for suffix in suffixes:
-                    # Construct filename
-                    filename = filename_pattern.replace('{Title}', story.title)\
-                                               .replace('{Author}', story.author)\
-                                               .replace('{Volume}', suffix)
-
-                    # Sanitize filename
-                    safe_filename = "".join([c for c in filename if c.isalnum() or c in (' ', '-', '_', '.')]).strip()
-
-                    for ext in ['.epub', '.pdf']:
-                        path = os.path.join(library_path, safe_filename + ext)
-                        if os.path.exists(path):
-                            try:
-                                os.remove(path)
-                                logger.info(f"Deleted ebook: {path}")
-                            except Exception as e:
-                                logger.error(f"Failed to delete ebook {path}: {e}")
 
             # Delete database records
             # Manually delete history
