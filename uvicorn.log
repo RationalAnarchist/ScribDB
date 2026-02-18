@@ -1,120 +1,87 @@
-2026-02-18 09:19:18,373 - INFO - root - Logging configured. Level: DEBUG, File: logs/scrollarr.log
+2026-02-18 09:27:40,762 - INFO - root - Logging configured. Level: DEBUG, File: logs/scrollarr.log
 Checking for database migrations...
 Running alembic upgrade head...
-2026-02-18 09:19:18,387 - INFO - alembic.runtime.migration - Context impl SQLiteImpl.
-2026-02-18 09:19:18,387 - INFO - alembic.runtime.migration - Will assume non-transactional DDL.
-2026-02-18 09:19:18,408 - INFO - alembic.runtime.migration - Running upgrade  -> 5a15aa3bb629, Initial migration
-2026-02-18 09:19:18,417 - DEBUG - alembic.runtime.migration - new branch insert 5a15aa3bb629
-2026-02-18 09:19:18,421 - INFO - alembic.runtime.migration - Running upgrade 5a15aa3bb629 -> 4ed83310b437, add_download_history
-2026-02-18 09:19:18,426 - DEBUG - alembic.runtime.migration - update 5a15aa3bb629 to 4ed83310b437
-2026-02-18 09:19:18,429 - INFO - alembic.runtime.migration - Running upgrade 4ed83310b437 -> 0356439e54ae, Add rich metadata fields
-2026-02-18 09:19:18,440 - DEBUG - alembic.runtime.migration - update 4ed83310b437 to 0356439e54ae
-2026-02-18 09:19:18,442 - INFO - alembic.runtime.migration - Running upgrade 0356439e54ae -> 20260216_add_source_config, Add source config
-2026-02-18 09:19:18,445 - DEBUG - alembic.runtime.migration - update 0356439e54ae to 20260216_add_source_config
-2026-02-18 09:19:18,447 - INFO - alembic.runtime.migration - Running upgrade 20260216_add_source_config -> 801449fbce51, Ensure stories columns exist
-2026-02-18 09:19:18,448 - DEBUG - alembic.runtime.migration - update 20260216_add_source_config to 801449fbce51
-2026-02-18 09:19:18,450 - INFO - alembic.runtime.migration - Running upgrade 801449fbce51 -> 9a8b7c6d5e4f, Add ebook profiles
-2026-02-18 09:19:18,470 - DEBUG - alembic.runtime.migration - update 801449fbce51 to 9a8b7c6d5e4f
-2026-02-18 09:19:18,473 - INFO - alembic.runtime.migration - Running upgrade 9a8b7c6d5e4f -> c109d92524fd, Repair download_history table
-2026-02-18 09:19:18,474 - DEBUG - alembic.runtime.migration - update 9a8b7c6d5e4f to c109d92524fd
-2026-02-18 09:19:18,476 - INFO - alembic.runtime.migration - Running upgrade c109d92524fd -> a1b2c3d4e5f6, Add notification settings
-2026-02-18 09:19:18,479 - DEBUG - alembic.runtime.migration - update c109d92524fd to a1b2c3d4e5f6
-2026-02-18 09:19:18,481 - INFO - alembic.runtime.migration - Running upgrade a1b2c3d4e5f6 -> 8e02ca194f50, add_published_date_to_chapters
-2026-02-18 09:19:18,484 - DEBUG - alembic.runtime.migration - update a1b2c3d4e5f6 to 8e02ca194f50
-2026-02-18 09:19:18,486 - INFO - alembic.runtime.migration - Running upgrade 8e02ca194f50 -> 202602181200, add_pdf_page_size
-2026-02-18 09:19:18,490 - DEBUG - alembic.runtime.migration - update 8e02ca194f50 to 202602181200
-2026-02-18 09:19:18,492 - INFO - alembic.runtime.migration - Running upgrade 202602181200 -> 20260219_add_qq_source, Add Questionable Questing source
-2026-02-18 09:19:18,493 - DEBUG - alembic.runtime.migration - update 202602181200 to 20260219_add_qq_source
-2026-02-18 09:19:18,495 - INFO - alembic.runtime.migration - Running upgrade 20260219_add_qq_source -> 20260220_add_vol_provider, Add volume_title and provider_name
-2026-02-18 09:19:18,500 - DEBUG - alembic.runtime.migration - update 20260219_add_qq_source to 20260220_add_vol_provider
-2026-02-18 09:19:18,502 - INFO - alembic.runtime.migration - Running upgrade 20260220_add_vol_provider -> 20260220_add_qq_all, Add Questionable Questing (All Posts) source record
-2026-02-18 09:19:18,503 - DEBUG - alembic.runtime.migration - update 20260220_add_vol_provider to 20260220_add_qq_all
-2026-02-18 09:19:18,505 - INFO - alembic.runtime.migration - Running upgrade 20260220_add_qq_all -> 20260221_add_notify, Add notify_on_new_chapter to stories
-2026-02-18 09:19:18,509 - DEBUG - alembic.runtime.migration - update 20260220_add_qq_all to 20260221_add_notify
+2026-02-18 09:27:40,767 - INFO - alembic.runtime.migration - Context impl SQLiteImpl.
+2026-02-18 09:27:40,768 - INFO - alembic.runtime.migration - Will assume non-transactional DDL.
 Migrations completed.
-2026-02-18 09:19:18,530 - INFO - story_manager - Reloaded providers. 4 providers registered.
-2026-02-18 09:19:18,531 - INFO - story_manager - StoryManager initialized and providers registered.
+2026-02-18 09:27:40,800 - INFO - story_manager - Reloaded providers. 4 providers registered.
+2026-02-18 09:27:40,801 - INFO - story_manager - StoryManager initialized and providers registered.
 Checking for database migrations...
 Running alembic upgrade head...
-2026-02-18 09:19:18,533 - INFO - alembic.runtime.migration - Context impl SQLiteImpl.
-2026-02-18 09:19:18,533 - INFO - alembic.runtime.migration - Will assume non-transactional DDL.
+2026-02-18 09:27:40,803 - INFO - alembic.runtime.migration - Context impl SQLiteImpl.
+2026-02-18 09:27:40,804 - INFO - alembic.runtime.migration - Will assume non-transactional DDL.
 Migrations completed.
-2026-02-18 09:19:18,540 - INFO - story_manager - Reloaded providers. 4 providers registered.
-2026-02-18 09:19:18,541 - INFO - story_manager - StoryManager initialized and providers registered.
-2026-02-18 09:19:18,555 - DEBUG - tzlocal - /etc/timezone found, contents:
+2026-02-18 09:27:40,813 - INFO - story_manager - Reloaded providers. 4 providers registered.
+2026-02-18 09:27:40,813 - INFO - story_manager - StoryManager initialized and providers registered.
+2026-02-18 09:27:40,825 - DEBUG - tzlocal - /etc/timezone found, contents:
  Etc/UTC
 
-2026-02-18 09:19:18,556 - DEBUG - tzlocal - /etc/localtime found
-2026-02-18 09:19:18,560 - DEBUG - tzlocal - 2 found:
+2026-02-18 09:27:40,826 - DEBUG - tzlocal - /etc/localtime found
+2026-02-18 09:27:40,827 - DEBUG - tzlocal - 2 found:
  {'/etc/timezone': 'Etc/UTC', '/etc/localtime is a symlink to': 'Etc/UTC'}
 Checking for database migrations...
 Running alembic upgrade head...
-2026-02-18 09:19:18,563 - INFO - alembic.runtime.migration - Context impl SQLiteImpl.
-2026-02-18 09:19:18,563 - INFO - alembic.runtime.migration - Will assume non-transactional DDL.
+2026-02-18 09:27:40,830 - INFO - alembic.runtime.migration - Context impl SQLiteImpl.
+2026-02-18 09:27:40,830 - INFO - alembic.runtime.migration - Will assume non-transactional DDL.
 Migrations completed.
-2026-02-18 09:19:18,570 - INFO - story_manager - Reloaded providers. 4 providers registered.
-2026-02-18 09:19:18,570 - INFO - story_manager - StoryManager initialized and providers registered.
-INFO:     Started server process [3592]
+2026-02-18 09:27:40,838 - INFO - story_manager - Reloaded providers. 4 providers registered.
+2026-02-18 09:27:40,839 - INFO - story_manager - StoryManager initialized and providers registered.
+INFO:     Started server process [5897]
 INFO:     Waiting for application startup.
 Checking for database migrations...
 Running alembic upgrade head...
-2026-02-18 09:19:18,648 - INFO - alembic.runtime.migration - Context impl SQLiteImpl.
-2026-02-18 09:19:18,648 - INFO - alembic.runtime.migration - Will assume non-transactional DDL.
+2026-02-18 09:27:40,934 - INFO - alembic.runtime.migration - Context impl SQLiteImpl.
+2026-02-18 09:27:40,934 - INFO - alembic.runtime.migration - Will assume non-transactional DDL.
 Migrations completed.
-2026-02-18 09:19:18,656 - INFO - apscheduler.scheduler - Adding job tentatively -- it will be properly scheduled when the scheduler starts
-2026-02-18 09:19:18,656 - INFO - apscheduler.scheduler - Adding job tentatively -- it will be properly scheduled when the scheduler starts
-2026-02-18 09:19:18,656 - INFO - apscheduler.scheduler - Adding job tentatively -- it will be properly scheduled when the scheduler starts
-2026-02-18 09:19:18,656 - INFO - job_manager - Jobs updated: check_updates (every 1h), download_queue (every 30.0s), check_metadata (every 12h)
-2026-02-18 09:19:18,656 - INFO - job_manager - Scheduled job: JobManager.check_for_updates (trigger: interval[1:00:00], pending)
-2026-02-18 09:19:18,656 - INFO - job_manager - Scheduled job: JobManager.process_download_queue (trigger: interval[0:00:30], pending)
-2026-02-18 09:19:18,656 - INFO - job_manager - Scheduled job: JobManager.check_missing_metadata (trigger: interval[12:00:00], pending)
-2026-02-18 09:19:18,657 - INFO - apscheduler.scheduler - Added job "JobManager.check_for_updates" to job store "default"
-2026-02-18 09:19:18,657 - INFO - apscheduler.scheduler - Added job "JobManager.process_download_queue" to job store "default"
-2026-02-18 09:19:18,657 - INFO - apscheduler.scheduler - Added job "JobManager.check_missing_metadata" to job store "default"
-2026-02-18 09:19:18,657 - INFO - apscheduler.scheduler - Scheduler started
-2026-02-18 09:19:18,657 - DEBUG - apscheduler.scheduler - Looking for jobs to run
-2026-02-18 09:19:18,658 - DEBUG - apscheduler.scheduler - Next wakeup is due at 2026-02-18 09:19:48.656297+00:00 (in 29.997973 seconds)
-2026-02-18 09:19:18,659 - INFO - apscheduler.scheduler - Added job "JobManager.check_missing_metadata" to job store "default"
-2026-02-18 09:19:18,659 - INFO - apscheduler.scheduler - Added job "JobManager.check_for_updates" to job store "default"
-2026-02-18 09:19:18,659 - INFO - job_manager - JobManager started.
+2026-02-18 09:27:40,944 - INFO - apscheduler.scheduler - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-02-18 09:27:40,944 - INFO - apscheduler.scheduler - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-02-18 09:27:40,944 - INFO - apscheduler.scheduler - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-02-18 09:27:40,944 - INFO - job_manager - Jobs updated: check_updates (every 1h), download_queue (every 30.0s), check_metadata (every 12h)
+2026-02-18 09:27:40,944 - INFO - job_manager - Scheduled job: JobManager.check_for_updates (trigger: interval[1:00:00], pending)
+2026-02-18 09:27:40,944 - INFO - job_manager - Scheduled job: JobManager.process_download_queue (trigger: interval[0:00:30], pending)
+2026-02-18 09:27:40,944 - INFO - job_manager - Scheduled job: JobManager.check_missing_metadata (trigger: interval[12:00:00], pending)
+2026-02-18 09:27:40,945 - INFO - apscheduler.scheduler - Added job "JobManager.check_for_updates" to job store "default"
+2026-02-18 09:27:40,945 - INFO - apscheduler.scheduler - Added job "JobManager.process_download_queue" to job store "default"
+2026-02-18 09:27:40,945 - INFO - apscheduler.scheduler - Added job "JobManager.check_missing_metadata" to job store "default"
+2026-02-18 09:27:40,945 - INFO - apscheduler.scheduler - Scheduler started
+2026-02-18 09:27:40,946 - DEBUG - apscheduler.scheduler - Looking for jobs to run
+2026-02-18 09:27:40,946 - DEBUG - apscheduler.scheduler - Next wakeup is due at 2026-02-18 09:28:10.944383+00:00 (in 29.997964 seconds)
+2026-02-18 09:27:40,947 - INFO - apscheduler.scheduler - Added job "JobManager.check_missing_metadata" to job store "default"
+2026-02-18 09:27:40,947 - INFO - apscheduler.scheduler - Added job "JobManager.check_for_updates" to job store "default"
+2026-02-18 09:27:40,947 - DEBUG - apscheduler.scheduler - Looking for jobs to run
+2026-02-18 09:27:40,947 - INFO - job_manager - JobManager started.
+2026-02-18 09:27:40,948 - DEBUG - apscheduler.scheduler - Next wakeup is due at 2026-02-18 09:27:50.946665+00:00 (in 9.998489 seconds)
+2026-02-18 09:27:40,948 - DEBUG - apscheduler.scheduler - Looking for jobs to run
+2026-02-18 09:27:40,948 - DEBUG - apscheduler.scheduler - Next wakeup is due at 2026-02-18 09:27:50.946665+00:00 (in 9.997893 seconds)
 INFO:     Application startup complete.
-2026-02-18 09:19:18,660 - DEBUG - apscheduler.scheduler - Looking for jobs to run
-2026-02-18 09:19:18,660 - DEBUG - apscheduler.scheduler - Next wakeup is due at 2026-02-18 09:19:28.658010+00:00 (in 9.997540 seconds)
 INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
-2026-02-18 09:19:28,658 - DEBUG - apscheduler.scheduler - Looking for jobs to run
-2026-02-18 09:19:28,659 - INFO - apscheduler.executors.default - Running job "JobManager.check_missing_metadata (trigger: date[2026-02-18 09:19:28 UTC], next run at: 2026-02-18 09:19:28 UTC)" (scheduled at 2026-02-18 09:19:28.658010+00:00)
-2026-02-18 09:19:28,659 - INFO - job_manager - Running scheduled metadata check...
-2026-02-18 09:19:28,659 - INFO - apscheduler.scheduler - Removed job check_metadata_startup
-2026-02-18 09:19:28,660 - INFO - story_manager - Checking for stories with missing metadata...
-2026-02-18 09:19:28,660 - DEBUG - apscheduler.scheduler - Next wakeup is due at 2026-02-18 09:19:38.659148+00:00 (in 9.998767 seconds)
-2026-02-18 09:19:28,665 - INFO - story_manager - No stories found with missing metadata.
-2026-02-18 09:19:28,666 - INFO - apscheduler.executors.default - Job "JobManager.check_missing_metadata (trigger: date[2026-02-18 09:19:28 UTC], next run at: 2026-02-18 09:19:28 UTC)" executed successfully
-2026-02-18 09:19:38,664 - DEBUG - apscheduler.scheduler - Looking for jobs to run
-2026-02-18 09:19:38,664 - INFO - apscheduler.scheduler - Removed job check_updates_startup
-2026-02-18 09:19:38,665 - DEBUG - apscheduler.scheduler - Next wakeup is due at 2026-02-18 09:19:48.656297+00:00 (in 9.991163 seconds)
-2026-02-18 09:19:38,665 - INFO - apscheduler.executors.default - Running job "JobManager.check_for_updates (trigger: date[2026-02-18 09:19:38 UTC], next run at: 2026-02-18 09:19:38 UTC)" (scheduled at 2026-02-18 09:19:38.659148+00:00)
-2026-02-18 09:19:38,665 - INFO - job_manager - Checking for updates...
-2026-02-18 09:19:38,669 - INFO - apscheduler.executors.default - Job "JobManager.check_for_updates (trigger: date[2026-02-18 09:19:38 UTC], next run at: 2026-02-18 09:19:38 UTC)" executed successfully
-2026-02-18 09:19:48,657 - DEBUG - apscheduler.scheduler - Looking for jobs to run
-2026-02-18 09:19:48,657 - DEBUG - apscheduler.scheduler - Next wakeup is due at 2026-02-18 09:20:18.656297+00:00 (in 29.998775 seconds)
-2026-02-18 09:19:48,657 - INFO - apscheduler.executors.default - Running job "JobManager.process_download_queue (trigger: interval[0:00:30], next run at: 2026-02-18 09:20:18 UTC)" (scheduled at 2026-02-18 09:19:48.656297+00:00)
-2026-02-18 09:19:48,657 - INFO - job_manager - Checking download queue for pending chapters...
-2026-02-18 09:19:48,669 - DEBUG - job_manager - No pending chapters found.
-2026-02-18 09:19:48,669 - INFO - job_manager - Download queue empty or processing stopped.
-2026-02-18 09:19:48,669 - INFO - apscheduler.executors.default - Job "JobManager.process_download_queue (trigger: interval[0:00:30], next run at: 2026-02-18 09:20:18 UTC)" executed successfully
-INFO:     127.0.0.1:45700 - "GET /import HTTP/1.1" 200 OK
-2026-02-18 09:20:18,656 - DEBUG - apscheduler.scheduler - Looking for jobs to run
-2026-02-18 09:20:18,657 - DEBUG - apscheduler.scheduler - Next wakeup is due at 2026-02-18 09:20:48.656297+00:00 (in 29.999063 seconds)
-2026-02-18 09:20:18,657 - INFO - apscheduler.executors.default - Running job "JobManager.process_download_queue (trigger: interval[0:00:30], next run at: 2026-02-18 09:20:48 UTC)" (scheduled at 2026-02-18 09:20:18.656297+00:00)
-2026-02-18 09:20:18,657 - INFO - job_manager - Checking download queue for pending chapters...
-2026-02-18 09:20:18,661 - DEBUG - job_manager - No pending chapters found.
-2026-02-18 09:20:18,661 - INFO - job_manager - Download queue empty or processing stopped.
-2026-02-18 09:20:18,661 - INFO - apscheduler.executors.default - Job "JobManager.process_download_queue (trigger: interval[0:00:30], next run at: 2026-02-18 09:20:48 UTC)" executed successfully
+INFO:     127.0.0.1:34994 - "GET /import HTTP/1.1" 200 OK
+2026-02-18 09:27:50,947 - DEBUG - apscheduler.scheduler - Looking for jobs to run
+2026-02-18 09:27:50,948 - INFO - apscheduler.executors.default - Running job "JobManager.check_missing_metadata (trigger: date[2026-02-18 09:27:50 UTC], next run at: 2026-02-18 09:27:50 UTC)" (scheduled at 2026-02-18 09:27:50.946665+00:00)
+2026-02-18 09:27:50,948 - INFO - job_manager - Running scheduled metadata check...
+2026-02-18 09:27:50,948 - INFO - apscheduler.scheduler - Removed job check_metadata_startup
+2026-02-18 09:27:50,949 - INFO - story_manager - Checking for stories with missing metadata...
+2026-02-18 09:27:50,949 - DEBUG - apscheduler.scheduler - Next wakeup is due at 2026-02-18 09:28:00.947472+00:00 (in 9.998250 seconds)
+2026-02-18 09:27:50,955 - INFO - story_manager - No stories found with missing metadata.
+2026-02-18 09:27:50,956 - INFO - apscheduler.executors.default - Job "JobManager.check_missing_metadata (trigger: date[2026-02-18 09:27:50 UTC], next run at: 2026-02-18 09:27:50 UTC)" executed successfully
+2026-02-18 09:28:00,953 - DEBUG - apscheduler.scheduler - Looking for jobs to run
+2026-02-18 09:28:00,953 - INFO - apscheduler.scheduler - Removed job check_updates_startup
+2026-02-18 09:28:00,953 - DEBUG - apscheduler.scheduler - Next wakeup is due at 2026-02-18 09:28:10.944383+00:00 (in 9.990542 seconds)
+2026-02-18 09:28:00,954 - INFO - apscheduler.executors.default - Running job "JobManager.check_for_updates (trigger: date[2026-02-18 09:28:00 UTC], next run at: 2026-02-18 09:28:00 UTC)" (scheduled at 2026-02-18 09:28:00.947472+00:00)
+2026-02-18 09:28:00,954 - INFO - job_manager - Checking for updates...
+2026-02-18 09:28:00,957 - INFO - apscheduler.executors.default - Job "JobManager.check_for_updates (trigger: date[2026-02-18 09:28:00 UTC], next run at: 2026-02-18 09:28:00 UTC)" executed successfully
+2026-02-18 09:28:10,944 - DEBUG - apscheduler.scheduler - Looking for jobs to run
+2026-02-18 09:28:10,945 - DEBUG - apscheduler.scheduler - Next wakeup is due at 2026-02-18 09:28:40.944383+00:00 (in 29.998937 seconds)
+2026-02-18 09:28:10,945 - INFO - apscheduler.executors.default - Running job "JobManager.process_download_queue (trigger: interval[0:00:30], next run at: 2026-02-18 09:28:40 UTC)" (scheduled at 2026-02-18 09:28:10.944383+00:00)
+2026-02-18 09:28:10,946 - INFO - job_manager - Checking download queue for pending chapters...
+2026-02-18 09:28:10,955 - DEBUG - job_manager - No pending chapters found.
+2026-02-18 09:28:10,955 - INFO - job_manager - Download queue empty or processing stopped.
+2026-02-18 09:28:10,955 - INFO - apscheduler.executors.default - Job "JobManager.process_download_queue (trigger: interval[0:00:30], next run at: 2026-02-18 09:28:40 UTC)" executed successfully
 INFO:     Shutting down
 INFO:     Waiting for application shutdown.
-2026-02-18 09:20:26,915 - INFO - apscheduler.scheduler - Scheduler has been shut down
-2026-02-18 09:20:26,915 - DEBUG - apscheduler.scheduler - Looking for jobs to run
-2026-02-18 09:20:26,915 - DEBUG - apscheduler.scheduler - No jobs; waiting until a job is added
-2026-02-18 09:20:26,915 - INFO - job_manager - JobManager stopped.
+2026-02-18 09:28:30,842 - INFO - apscheduler.scheduler - Scheduler has been shut down
+2026-02-18 09:28:30,842 - DEBUG - apscheduler.scheduler - Looking for jobs to run
+2026-02-18 09:28:30,842 - DEBUG - apscheduler.scheduler - No jobs; waiting until a job is added
+2026-02-18 09:28:30,843 - INFO - job_manager - JobManager stopped.
 INFO:     Application shutdown complete.
-INFO:     Finished server process [3592]
+INFO:     Finished server process [5897]

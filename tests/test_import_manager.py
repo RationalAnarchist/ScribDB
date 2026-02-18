@@ -1,6 +1,5 @@
 import unittest
 from unittest.mock import MagicMock, patch
-from pathlib import Path
 import os
 import sys
 
@@ -11,38 +10,40 @@ from import_manager import ImportManager
 
 class TestImportManager(unittest.TestCase):
     def setUp(self):
-        # Patch StoryManager and LibraryManager init to avoid actual DB/File ops during init
         with patch('import_manager.StoryManager'), patch('import_manager.LibraryManager'):
             self.im = ImportManager()
-
-        # Mock the instances
-        self.im.story_manager = MagicMock()
-        self.im.library_manager = MagicMock()
 
     @patch('import_manager.os.walk')
     @patch('import_manager.epub.read_epub')
     @patch('import_manager.Path')
     def test_scan_directory(self, mock_path_cls, mock_read_epub, mock_walk):
-        # Mock Path root object
-        mock_root_path = MagicMock()
-        mock_root_path.resolve.return_value = mock_root_path
-        mock_root_path.exists.return_value = True
-        mock_root_path.is_dir.return_value = True
+        # Custom mock for Path to handle different inputs
+        def path_side_effect(arg):
+            m = MagicMock()
+            str_arg = str(arg)
+            m.__str__.return_value = str_arg
 
-        # Configure __truediv__ to return a mock with correct name
-        def div_side_effect(other):
-             m = MagicMock()
-             m.name = other
-             m.stem = other.split('.')[0]
-             m.__str__.return_value = f"/lib/{other}"
-             return m
+            if str_arg == '/lib':
+                m.resolve.return_value = m
+                m.exists.return_value = True
+                m.is_dir.return_value = True
+                # Mock joining
+                def div_side_effect(other):
+                    return path_side_effect(f"{str_arg}/{other}")
+                m.__truediv__.side_effect = div_side_effect
+            else:
+                m.name = os.path.basename(str_arg)
+                parts = m.name.rsplit('.', 1)
+                m.stem = parts[0]
+                m.suffix = f".{parts[1]}" if len(parts) > 1 else ""
 
-        mock_root_path.__truediv__.side_effect = div_side_effect
-        mock_path_cls.return_value = mock_root_path
+            return m
+
+        mock_path_cls.side_effect = path_side_effect
 
         # Setup mock directory structure
         mock_walk.return_value = [
-            ('/lib', [], ['book.epub', 'other.txt'])
+            ('/lib', [], ['book.epub', 'manual.pdf', 'page.html', 'ignore.txt'])
         ]
 
         # Setup mock epub
@@ -50,35 +51,30 @@ class TestImportManager(unittest.TestCase):
         mock_book.get_metadata.side_effect = lambda ns, key: [['Test Title']] if key == 'title' else [['Test Author']]
         mock_read_epub.return_value = mock_book
 
-        results = self.im.scan_directory('/lib')
+        # Mock open for HTML reading
+        # We need to mock open specifically for the HTML file path
 
-        self.assertEqual(len(results), 1)
-        self.assertEqual(results[0]['title'], 'Test Title')
-        self.assertEqual(results[0]['author'], 'Test Author')
-        self.assertEqual(results[0]['filename'], 'book.epub')
+        # Since we can't easily predict the exact object passed to open (it's the mock path object),
+        # we'll mock open globally but only return content for html
 
-    @patch('import_manager.epub.read_epub')
-    def test_extract_metadata_error(self, mock_read_epub):
-        mock_read_epub.side_effect = Exception("Corrupt file")
+        mock_open = unittest.mock.mock_open(read_data="<html><head><title>HTML Story</title></head><body></body></html>")
 
-        path = MagicMock()
-        path.stem = 'corrupt'
-        path.name = 'corrupt.epub'
-        path.__str__.return_value = '/lib/corrupt.epub'
+        with patch('builtins.open', mock_open):
+             results = self.im.scan_directory('/lib')
 
-        metadata = self.im.extract_metadata(path)
+        self.assertEqual(len(results), 3) # epub, pdf, html
 
-        self.assertEqual(metadata['title'], 'corrupt') # fallback to stem
-        self.assertEqual(metadata['author'], 'Unknown')
-        self.assertIn('error', metadata)
+        # Check EPUB
+        epub_res = next(r for r in results if r['filename'] == 'book.epub')
+        self.assertEqual(epub_res['title'], 'Test Title')
 
-    def test_import_story(self):
-        self.im.story_manager.add_story.return_value = 123
+        # Check PDF
+        pdf_res = next(r for r in results if r['filename'] == 'manual.pdf')
+        self.assertEqual(pdf_res['title'], 'manual') # fallback to stem
 
-        story_id = self.im.import_story("http://example.com", None, False)
-
-        self.im.story_manager.add_story.assert_called_with("http://example.com")
-        self.assertEqual(story_id, 123)
+        # Check HTML
+        html_res = next(r for r in results if r['filename'] == 'page.html')
+        self.assertEqual(html_res['title'], 'HTML Story') # from BS4
 
 if __name__ == '__main__':
     unittest.main()

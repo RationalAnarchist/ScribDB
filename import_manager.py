@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import List, Dict, Optional
 import ebooklib
 from ebooklib import epub
+from bs4 import BeautifulSoup
 from story_manager import StoryManager
 from library_manager import LibraryManager
 from database import SessionLocal, Story
@@ -18,7 +19,7 @@ class ImportManager:
 
     def scan_directory(self, path: str) -> List[Dict]:
         """
-        Scans a directory for EPUB files and extracts metadata.
+        Scans a directory for importable files (EPUB, PDF, HTML) and extracts metadata.
         Returns a list of dictionaries with 'title', 'author', 'path', 'filename'.
         """
         search_path = Path(path).resolve()
@@ -29,7 +30,8 @@ class ImportManager:
         try:
             for root, _, files in os.walk(search_path):
                 for file in files:
-                    if file.lower().endswith('.epub'):
+                    ext = Path(file).suffix.lower()
+                    if ext in ['.epub', '.pdf', '.html', '.htm']:
                         file_path = Path(root) / file
                         metadata = self.extract_metadata(file_path)
                         results.append(metadata)
@@ -41,20 +43,41 @@ class ImportManager:
 
     def extract_metadata(self, file_path: Path) -> Dict:
         """
-        Extracts metadata from an EPUB file.
+        Extracts metadata from a file based on extension.
         Returns a dictionary with 'title', 'author', 'path', 'filename'.
         """
+        ext = file_path.suffix.lower()
+        title_str = file_path.stem
+        author_str = "Unknown"
+
         try:
-            # ebooklib can be noisy with warnings, suppress if needed, but for now we just catch exceptions
-            book = epub.read_epub(str(file_path))
+            if ext == '.epub':
+                # ebooklib can be noisy with warnings, suppress if needed
+                book = epub.read_epub(str(file_path))
 
-            # Dublin Core metadata extraction
-            title_meta = book.get_metadata('DC', 'title')
-            author_meta = book.get_metadata('DC', 'creator')
+                # Dublin Core metadata extraction
+                title_meta = book.get_metadata('DC', 'title')
+                author_meta = book.get_metadata('DC', 'creator')
 
-            # Extract first value if available
-            title_str = title_meta[0][0] if title_meta else file_path.stem
-            author_str = author_meta[0][0] if author_meta else "Unknown"
+                if title_meta:
+                    title_str = title_meta[0][0]
+                if author_meta:
+                    author_str = author_meta[0][0]
+
+            elif ext in ['.html', '.htm']:
+                try:
+                    with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                        soup = BeautifulSoup(f, 'html.parser')
+                        if soup.title and soup.title.string:
+                            title_str = soup.title.string.strip()
+                        # HTML author extraction is tricky without standard meta tags, sticking to Unknown or maybe meta name="author"
+                        meta_author = soup.find('meta', attrs={'name': 'author'})
+                        if meta_author and meta_author.get('content'):
+                            author_str = meta_author['content'].strip()
+                except Exception as e:
+                    logger.warning(f"Failed to parse HTML metadata for {file_path}: {e}")
+
+            # PDF and others fallback to filename (already set as default)
 
             return {
                 "title": title_str,
@@ -62,8 +85,9 @@ class ImportManager:
                 "path": str(file_path),
                 "filename": file_path.name
             }
+
         except Exception as e:
-            logger.error(f"Error reading EPUB {file_path}: {e}")
+            logger.error(f"Error extracting metadata from {file_path}: {e}")
             # Fallback to filename
             return {
                 "title": file_path.stem,
@@ -119,7 +143,7 @@ class ImportManager:
                 # We use 'Imported' as the suffix/volume indicator for now
                 ext = source_path.suffix.lstrip('.')
                 if not ext:
-                    ext = 'epub'
+                    ext = 'epub' # Default fallback, though ideally we keep original
 
                 # Use LibraryManager to get the correct path
                 # Note: get_compiled_absolute_path expects 'suffix' for volume name
