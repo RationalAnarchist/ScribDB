@@ -13,3 +13,4 @@ saved_stories/
 logs/*
 !logs/.gitkeep
 *.log
+config/config.json

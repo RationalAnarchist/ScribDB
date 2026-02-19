@@ -345,7 +345,7 @@ async def search_page(request: Request):
     return templates.TemplateResponse("search.html", {"request": request})
 
 @app.get("/api/search")
-async def search_stories(query: str, provider: Optional[str] = None):
+def search_stories(query: str, provider: Optional[str] = None):
     """Search for stories."""
     if not story_manager:
         raise HTTPException(status_code=500, detail="StoryManager not initialized")
@@ -486,7 +486,7 @@ async def toggle_source(source_key: str, db: Session = Depends(get_db)):
     return {"message": f"Source {source.name} {'enabled' if source.is_enabled else 'disabled'}", "is_enabled": source.is_enabled}
 
 @app.post("/api/lookup")
-async def lookup_story(request: UrlRequest):
+def lookup_story(request: UrlRequest):
     """Lookup story metadata without saving."""
     if not story_manager:
         raise HTTPException(status_code=500, detail="StoryManager not initialized")
@@ -504,7 +504,7 @@ async def lookup_story(request: UrlRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/add")
-async def add_story(request: UrlRequest):
+def add_story(request: UrlRequest):
     """Add a story to the database."""
     if not story_manager:
         raise HTTPException(status_code=500, detail="StoryManager not initialized")

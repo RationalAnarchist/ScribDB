@@ -9,6 +9,7 @@ from .core_logic import SourceManager
 from .sources.royalroad import RoyalRoadSource
 from .sources.ao3 import AO3Source
 from .sources.questionablequesting import QuestionableQuestingSource, QuestionableQuestingAllPostsSource
+from .sources.kemono import KemonoSource
 from .database import Story, Chapter, Source, SessionLocal, init_db, engine, DownloadHistory
 from .config import config_manager
 from .notifications import NotificationManager
@@ -51,7 +52,8 @@ class StoryManager:
                 'royalroad': RoyalRoadSource,
                 'ao3': AO3Source,
                 'questionablequesting': QuestionableQuestingSource,
-                'questionablequesting_all': QuestionableQuestingAllPostsSource
+                'questionablequesting_all': QuestionableQuestingAllPostsSource,
+                'kemono': KemonoSource
             }
 
             registered_count = 0
