@@ -6,10 +6,10 @@ This document lists potential websites that host stories similar to Archive of O
 
 These sites share the XenForo platform with the existing `QuestionableQuesting` source, making integration potentially easier.
 
-### 1. SpaceBattles (spacebattles.com)
-*   **Description:** A large forum community with a heavy focus on science fiction, fanfiction, and original fiction.
-*   **Why it's a good fit:** Very similar to Questionable Questing in structure (XenForo). Often cross-posts with Sufficient Velocity and AO3. Has a dedicated Creative Writing section.
-*   **Technical Feasibility:** High. Can leverage the existing `QuestionableQuestingSource` logic for threadmarks and post extraction.
+### ~~1. SpaceBattles (spacebattles.com)~~
+*   ~~**Description:** A large forum community with a heavy focus on science fiction, fanfiction, and original fiction.~~
+*   ~~**Why it's a good fit:** Very similar to Questionable Questing in structure (XenForo). Often cross-posts with Sufficient Velocity and AO3. Has a dedicated Creative Writing section.~~
+*   ~~**Technical Feasibility:** High. Can leverage the existing `QuestionableQuestingSource` logic for threadmarks and post extraction.~~
 
 ### 2. Sufficient Velocity (sufficientvelocity.com)
 *   **Description:** A forum that split from SpaceBattles, sharing a similar community and focus on sci-fi and fanfiction.
