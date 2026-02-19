@@ -20,10 +20,10 @@ These sites share the XenForo platform with the existing `QuestionableQuesting` 
 
 These sites are popular among readers of Royal Road and AO3.
 
-### 3. Scribble Hub (scribblehub.com)
-*   **Description:** A platform for original web novels, often focusing on LitRPG, Isekai, and Progression Fantasy.
-*   **Why it's a good fit:** Structurally and thematically very similar to Royal Road. It was created by the same developer as Royal Road (or is heavily inspired by it).
-*   **Technical Feasibility:** High. Standard HTML structure, likely easy to scrape with `BeautifulSoup`.
+### ~~3. Scribble Hub (scribblehub.com)~~
+*   ~~**Description:** A platform for original web novels, often focusing on LitRPG, Isekai, and Progression Fantasy.~~
+*   ~~**Why it's a good fit:** Structurally and thematically very similar to Royal Road. It was created by the same developer as Royal Road (or is heavily inspired by it).~~
+*   ~~**Technical Feasibility:** High. Standard HTML structure, likely easy to scrape with `BeautifulSoup`.~~
 
 ### 4. Wattpad (wattpad.com)
 *   **Description:** One of the largest platforms for original stories and fanfiction, covering a wide range of genres.
