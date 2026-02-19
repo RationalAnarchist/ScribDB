@@ -1,6 +1,10 @@
 import re
 import time
 import subprocess
+import os
+import tempfile
+import ebooklib
+from ebooklib import epub
 from typing import List, Dict, Optional
 from datetime import datetime
 from bs4 import BeautifulSoup
@@ -237,6 +241,27 @@ class KemonoSource(BaseSource):
 
         return chapters
 
+    def _extract_epub_content(self, path):
+        """Extracts HTML content from an EPUB file."""
+        try:
+            book = epub.read_epub(path, options={'ignore_ncx': True})
+            html_parts = []
+            # Use spine for correct order
+            for item_id, _ in book.spine:
+                item = book.get_item_with_id(item_id)
+                if item and item.get_type() == ebooklib.ITEM_DOCUMENT:
+                    content = item.get_content() # bytes
+                    soup = BeautifulSoup(content, 'html.parser')
+                    body = soup.body
+                    if body:
+                        html_parts.append(body.decode_contents())
+                    else:
+                        html_parts.append(soup.decode_contents()) # Fallback
+            return "".join(html_parts)
+        except Exception as e:
+            print(f"Error extracting EPUB: {e}")
+            return ""
+
     def get_chapter_content(self, chapter_url: str) -> str:
         output = []
 
@@ -269,6 +294,7 @@ class KemonoSource(BaseSource):
                     content_html = content_el.inner_html()
 
                 attachments_html = ""
+                epub_content = ""
 
                 # Check for main file
                 thumb_el = page.query_selector('.post__thumbnail img')
@@ -291,13 +317,56 @@ class KemonoSource(BaseSource):
                             if src.startswith('/'):
                                 src = f"https://kemono.cr{src}"
                             attachments_html += f'<img src="{src}" /><br/>'
-                    elif href and (href.endswith('.jpg') or href.endswith('.png') or href.endswith('.jpeg')):
-                        if href.startswith('/'):
-                            href = f"https://kemono.cr{href}"
-                        attachments_html += f'<img src="{href}" /><br/>'
+                    elif href:
+                        if href.endswith('.jpg') or href.endswith('.png') or href.endswith('.jpeg'):
+                            if href.startswith('/'):
+                                href = f"https://kemono.cr{href}"
+                            attachments_html += f'<img src="{href}" /><br/>'
+                        elif href.endswith('.epub'):
+                            # Handle EPUB download
+                            try:
+                                with page.expect_download() as download_info:
+                                    att.click()
+                                download = download_info.value
 
-                if content_html:
-                    output.append(content_html)
+                                tmp_fd, tmp_path = tempfile.mkstemp(suffix=".epub")
+                                os.close(tmp_fd)
+
+                                download.save_as(tmp_path)
+                                print(f"Downloaded EPUB to {tmp_path}")
+
+                                extracted = self._extract_epub_content(tmp_path)
+                                if extracted:
+                                    epub_content = extracted
+
+                                os.remove(tmp_path)
+                            except Exception as e:
+                                print(f"Failed to download/extract EPUB: {e}")
+
+                # Logic:
+                # 1. If EPUB found:
+                #    - If content_html matches EPUB (fuzzy check), prefer EPUB.
+                #    - If content_html is empty/small, use EPUB.
+                #    - Else, concatenate both.
+
+                final_html = content_html
+
+                if epub_content:
+                    post_text = BeautifulSoup(content_html, 'html.parser').get_text(strip=True)
+                    epub_text = BeautifulSoup(epub_content, 'html.parser').get_text(strip=True)
+
+                    # If post is empty or very short compared to EPUB, use EPUB
+                    if len(post_text) < 100:
+                        final_html = epub_content
+                    # If post text is roughly contained in EPUB text
+                    elif post_text in epub_text: # Simple containment check
+                        final_html = epub_content
+                    else:
+                        # Append
+                        final_html = f"{content_html}<hr/>{epub_content}"
+
+                if final_html:
+                    output.append(final_html)
 
                 if attachments_html:
                     output.append(attachments_html)
