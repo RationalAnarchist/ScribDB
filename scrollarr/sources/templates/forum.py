@@ -277,7 +277,7 @@ class XenForoSource(BaseSource):
                     'url': url,
                     'author': author,
                     'description': snippet,
-                    'provider': 'Questionable Questing'
+                    'provider': self.name
                 }
             elif unique_results[url]['author'] == "Unknown" and author != "Unknown":
                 unique_results[url]['author'] = author
