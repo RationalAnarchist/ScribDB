@@ -12,6 +12,9 @@ from ..core_logic import BaseSource
 
 class KemonoSource(BaseSource):
     BASE_URLS = ["https://kemono.cr", "https://kemono.su", "https://kemono.party"]
+    key = "kemono"
+    name = "Kemono"
+    is_enabled_by_default = False
 
     def identify(self, url: str) -> bool:
         return any(base in url for base in self.BASE_URLS)

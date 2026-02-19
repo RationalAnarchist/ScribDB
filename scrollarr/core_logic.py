@@ -3,6 +3,10 @@ from typing import List, Dict, Optional
 
 # The "Contract" for any new website (Royal Road, AO3, etc.)
 class BaseSource(ABC):
+    key: str = ""
+    name: str = ""
+    is_enabled_by_default: bool = True
+
     @abstractmethod
     def identify(self, url: str) -> bool:
         """Returns True if this provider handles the given URL."""
@@ -56,6 +60,6 @@ class SourceManager:
 
     def get_provider_by_key(self, key: str) -> Optional[BaseSource]:
         for provider in self.providers:
-            if getattr(provider, 'key', None) == key:
+            if provider.key == key:
                 return provider
         return None

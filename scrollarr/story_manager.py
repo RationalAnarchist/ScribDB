@@ -1,16 +1,14 @@
 import os
 import logging
 import json
+import pkgutil
+import importlib
+import inspect
 from typing import Optional, List, Dict
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy.sql import func
-from .core_logic import SourceManager
-from .sources.royalroad import RoyalRoadSource
-from .sources.ao3 import AO3Source
-from .sources.questionablequesting import QuestionableQuestingSource, QuestionableQuestingAllPostsSource
-from .sources.spacebattles import SpaceBattlesSource
-from .sources.kemono import KemonoSource
+from .core_logic import SourceManager, BaseSource
 from .database import Story, Chapter, Source, SessionLocal, init_db, engine, DownloadHistory
 from .config import config_manager
 from .notifications import NotificationManager
@@ -38,33 +36,64 @@ class StoryManager:
 
     def reload_providers(self):
         """
-        Reloads providers from the database.
-        Registers ALL providers but marks them as enabled/disabled.
+        Reloads providers from the database and discovers new ones dynamically.
         """
         self.source_manager.clear_providers()
         session = SessionLocal()
-        try:
-            # Fetch all sources to get enabled state and config
-            all_sources = session.query(Source).all()
-            sources_map = {s.key: s for s in all_sources}
 
-            # Map keys to provider classes
-            providers_map = {
-                'royalroad': RoyalRoadSource,
-                'ao3': AO3Source,
-                'questionablequesting': QuestionableQuestingSource,
-                'questionablequesting_all': QuestionableQuestingAllPostsSource,
-                'kemono': KemonoSource,
-                'spacebattles': SpaceBattlesSource
-            }
+        try:
+            # Fetch all sources from DB
+            all_sources_db = session.query(Source).all()
+            sources_map = {s.key: s for s in all_sources_db}
+
+            # Dynamic discovery
+            import scrollarr.sources
+
+            package = scrollarr.sources
+            # Use pkgutil to iterate modules in the package path
+
+            discovered_providers = []
+
+            for _, name, _ in pkgutil.iter_modules(package.__path__):
+                if name == 'templates': # Skip templates directory
+                    continue
+
+                full_name = f"scrollarr.sources.{name}"
+                try:
+                    module = importlib.import_module(full_name)
+
+                    for attribute_name in dir(module):
+                        attribute = getattr(module, attribute_name)
+
+                        if inspect.isclass(attribute) and issubclass(attribute, BaseSource):
+                            # Skip BaseSource itself
+                            if attribute is BaseSource:
+                                continue
+
+                            # Skip if imported (not defined in this module)
+                            if attribute.__module__ != module.__name__:
+                                continue
+
+                            # Instantiate
+                            try:
+                                provider_instance = attribute()
+                                # Check if it has a key
+                                if not getattr(provider_instance, 'key', None):
+                                    logger.warning(f"Provider {attribute_name} in {name} has no key. Skipping.")
+                                    continue
+
+                                discovered_providers.append(provider_instance)
+                            except Exception as e:
+                                logger.error(f"Failed to instantiate provider {attribute_name}: {e}")
+
+                except Exception as e:
+                    logger.error(f"Failed to import module {name}: {e}")
 
             registered_count = 0
-            for key, provider_class in providers_map.items():
-                provider_instance = provider_class()
-                # Inject key for identification
-                provider_instance.key = key
+            for provider_instance in discovered_providers:
+                key = provider_instance.key
 
-                # Determine enabled state and config
+                # Check against DB
                 if key in sources_map:
                     source_record = sources_map[key]
                     provider_instance.is_enabled = source_record.is_enabled
@@ -77,8 +106,27 @@ class StoryManager:
                         except Exception as e:
                             logger.error(f"Failed to load config for {key}: {e}")
                 else:
-                    # Should not happen if DB is seeded correctly
-                    provider_instance.is_enabled = True
+                    # New source found! Add to DB.
+                    logger.info(f"New source discovered: {provider_instance.name} ({key})")
+                    is_enabled_default = getattr(provider_instance, 'is_enabled_by_default', True)
+
+                    new_source = Source(
+                        name=provider_instance.name,
+                        key=key,
+                        is_enabled=is_enabled_default
+                    )
+                    session.add(new_source)
+                    # Use default enabled state for instance too
+                    provider_instance.is_enabled = is_enabled_default
+
+                    try:
+                        session.commit()
+                        # Add to our local map to avoid duplicates if iterating multiple times (not the case here)
+                        sources_map[key] = new_source
+                    except Exception as e:
+                        logger.error(f"Failed to save new source {key} to DB: {e}")
+                        session.rollback()
+                        continue
 
                 self.source_manager.register_provider(provider_instance)
                 registered_count += 1
@@ -86,6 +134,7 @@ class StoryManager:
             logger.info(f"Reloaded providers. {registered_count} providers registered.")
         except Exception as e:
             logger.error(f"Error reloading providers: {e}")
+            session.rollback()
         finally:
             session.close()
 

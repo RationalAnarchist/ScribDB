@@ -9,6 +9,8 @@ from ..polite_requester import PoliteRequester
 
 class AO3Source(BaseSource):
     BASE_URL = "https://archiveofourown.org"
+    key = "ao3"
+    name = "Archive of Our Own"
 
     def __init__(self):
         self.requester = PoliteRequester()

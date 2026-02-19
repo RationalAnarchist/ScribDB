@@ -1,8 +1,10 @@
 import re
-from .questionablequesting import QuestionableQuestingSource
+from .templates.forum import XenForoSource
 
-class SpaceBattlesSource(QuestionableQuestingSource):
+class SpaceBattlesSource(XenForoSource):
     BASE_URL = "https://forums.spacebattles.com"
+    key = "spacebattles"
+    name = "SpaceBattles"
 
     def identify(self, url: str) -> bool:
         return 'spacebattles.com/threads/' in url
