@@ -9,6 +9,8 @@ from ..polite_requester import PoliteRequester
 
 class RoyalRoadSource(BaseSource):
     BASE_URL = "https://www.royalroad.com"
+    key = "royalroad"
+    name = "Royal Road"
 
     def __init__(self):
         self.requester = PoliteRequester()

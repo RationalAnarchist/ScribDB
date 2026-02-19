@@ -466,7 +466,7 @@ async def update_settings(settings: SettingsRequest):
 @app.get("/api/sources")
 async def get_sources(db: Session = Depends(get_db)):
     """Get all sources."""
-    sources = db.query(Source).all()
+    sources = db.query(Source).order_by(Source.name.asc()).all()
     return [{"name": s.name, "key": s.key, "is_enabled": s.is_enabled} for s in sources]
 
 @app.post("/api/sources/{source_key}/toggle")
