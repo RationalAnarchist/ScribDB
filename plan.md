@@ -25,10 +25,10 @@ These sites are popular among readers of Royal Road and AO3.
 *   ~~**Why it's a good fit:** Structurally and thematically very similar to Royal Road. It was created by the same developer as Royal Road (or is heavily inspired by it).~~
 *   ~~**Technical Feasibility:** High. Standard HTML structure, likely easy to scrape with `BeautifulSoup`.~~
 
-### 4. Wattpad (wattpad.com)
-*   **Description:** One of the largest platforms for original stories and fanfiction, covering a wide range of genres.
-*   **Why it's a good fit:** Massive library and user base. Frequently requested.
-*   **Technical Feasibility:** Medium/Hard. Uses heavy JavaScript and dynamic loading. May require `playwright` (already in project) or specialized API handling. Login often required for mature content.
+### ~~4. Wattpad (wattpad.com)~~
+*   ~~**Description:** One of the largest platforms for original stories and fanfiction, covering a wide range of genres.~~
+*   ~~**Why it's a good fit:** Massive library and user base. Frequently requested.~~
+*   ~~**Technical Feasibility:** Medium/Hard. Uses heavy JavaScript and dynamic loading. May require `playwright` (already in project) or specialized API handling. Login often required for mature content.~~
 
 ### 5. FanFiction.net (fanfiction.net)
 *   **Description:** The classic archive for fanfiction. Huge database of stories.
