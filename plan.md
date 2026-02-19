@@ -11,10 +11,10 @@ These sites share the XenForo platform with the existing `QuestionableQuesting` 
 *   ~~**Why it's a good fit:** Very similar to Questionable Questing in structure (XenForo). Often cross-posts with Sufficient Velocity and AO3. Has a dedicated Creative Writing section.~~
 *   ~~**Technical Feasibility:** High. Can leverage the existing `QuestionableQuestingSource` logic for threadmarks and post extraction.~~
 
-### 2. Sufficient Velocity (sufficientvelocity.com)
-*   **Description:** A forum that split from SpaceBattles, sharing a similar community and focus on sci-fi and fanfiction.
-*   **Why it's a good fit:** Almost identical structure to SpaceBattles and Questionable Questing (XenForo). Many authors post on both SB and SV.
-*   **Technical Feasibility:** High. Same codebase as SB/QQ.
+### ~~2. Sufficient Velocity (sufficientvelocity.com)~~
+*   ~~**Description:** A forum that split from SpaceBattles, sharing a similar community and focus on sci-fi and fanfiction.~~
+*   ~~**Why it's a good fit:** Almost identical structure to SpaceBattles and Questionable Questing (XenForo). Many authors post on both SB and SV.~~
+*   ~~**Technical Feasibility:** High. Same codebase as SB/QQ.~~
 
 ## Strong Contenders (Similar Content/Audience)
 
