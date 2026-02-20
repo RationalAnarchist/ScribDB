@@ -80,6 +80,10 @@ class EbookBuilder:
 
         # Write to file
         try:
+            if os.path.exists(output_path):
+                print(f"Overwriting existing EPUB at: {output_path}")
+                os.remove(output_path)
+
             epub.write_epub(output_path, book, {})
             print(f"EPUB generated at: {output_path}")
         except Exception as e:
