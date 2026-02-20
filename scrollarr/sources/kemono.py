@@ -218,7 +218,11 @@ class KemonoSource(BaseSource):
                         page_chapters.append({
                             'title': title,
                             'url': full_url,
-                            'published_date': published_date
+                            'published_date': published_date,
+                            'tags': [
+                                t.get_text(strip=True) for t in post.select('a[href*="/tag/"]')
+                                if t.get_text(strip=True)
+                            ]
                         })
 
                     if not page_chapters:

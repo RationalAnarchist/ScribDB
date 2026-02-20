@@ -319,6 +319,34 @@ class EbookBuilder:
         finally:
             session.close()
 
+    def compile_filtered(self, story_id: int, chapter_ids: List[int]) -> str:
+        """
+        Compiles a specific list of chapters by ID.
+        """
+        from .database import SessionLocal, Story, Chapter
+        session = SessionLocal()
+        try:
+            story = session.query(Story).filter(Story.id == story_id).first()
+            if not story:
+                raise ValueError(f"Story with ID {story_id} not found")
+
+            chapters = session.query(Chapter).filter(
+                Chapter.id.in_(chapter_ids)
+            ).order_by(Chapter.volume_number, Chapter.index).all()
+
+            if not chapters:
+                raise ValueError("No chapters found matching the selection.")
+
+            # Create a descriptive suffix
+            suffix = "Custom Selection"
+            # If all chapters are from the same volume, mention it?
+            # Or if checking specific tags?
+            # For now "Custom Selection" is safe.
+
+            return self._compile_chapters(story, chapters, suffix, file_type='chapter_group')
+        finally:
+            session.close()
+
     def _compile_chapters(self, story, chapters, suffix: str, file_type: str = 'legacy') -> str:
         """
         Internal method to compile a list of chapters based on story profile.

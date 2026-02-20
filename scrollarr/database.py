@@ -54,6 +54,7 @@ class Chapter(Base):
     index = Column(Integer, nullable=True)
     status = Column(String, default='pending')
     published_date = Column(DateTime, nullable=True)
+    tags = Column(String, nullable=True)
 
     story = relationship("Story", back_populates="chapters")
 

@@ -162,6 +162,9 @@ class TestNotificationRequest(BaseModel):
     target: str
     kind: str
 
+class CustomCompileRequest(BaseModel):
+    chapter_ids: List[int]
+
 # JobManager instance
 job_manager = JobManager()
 
@@ -702,6 +705,25 @@ async def compile_full_story(story_id: int):
         logger.error(f"Compile full story error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/api/compile/{story_id}/custom")
+async def compile_custom_story(story_id: int, request: CustomCompileRequest):
+    """Compile a custom selection of chapters."""
+    try:
+        builder = EbookBuilder()
+        output_path = builder.compile_filtered(story_id, request.chapter_ids)
+
+        if not output_path or not os.path.exists(output_path):
+             raise HTTPException(status_code=500, detail="Failed to create ebook file")
+
+        filename = os.path.basename(output_path)
+        return FileResponse(output_path, media_type='application/epub+zip', filename=filename)
+
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Compile custom story error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.post("/api/email/{story_id}/{volume_number:int}")
 async def email_volume(story_id: int, volume_number: int, db: Session = Depends(get_db)):
     """Compile and email a volume."""
@@ -828,6 +850,70 @@ async def email_full_story(story_id: int, db: Session = Depends(get_db)):
         raise e
     except Exception as e:
         logger.error(f"Email full story error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/email/{story_id}/custom")
+async def email_custom_story(story_id: int, request: CustomCompileRequest, db: Session = Depends(get_db)):
+    """Compile and email a custom selection of chapters."""
+    try:
+        # Check for enabled email notifications
+        email_targets = db.query(NotificationSettings).filter(
+            NotificationSettings.kind == 'email',
+            NotificationSettings.enabled == True
+        ).all()
+
+        if not email_targets:
+            raise HTTPException(status_code=400, detail="No enabled email notifications found.")
+
+        if not config_manager.get('smtp_host'):
+             raise HTTPException(status_code=400, detail="SMTP settings are not configured. Please check Settings > Notifications.")
+
+        builder = EbookBuilder()
+        output_path = builder.compile_filtered(story_id, request.chapter_ids)
+
+        if not output_path or not os.path.exists(output_path):
+             raise HTTPException(status_code=500, detail="Failed to create ebook file")
+
+        nm = NotificationManager()
+        story = db.query(Story).filter(Story.id == story_id).first()
+        story_title = story.title if story else "Unknown Story"
+        subject = f"Ebook: {story_title} - Custom Selection"
+
+        body_with_file = f"Attached is the compiled ebook for {story_title} (Custom Selection)."
+        body_without_file = f"The compiled ebook for {story_title} (Custom Selection) has been created and sent to your other devices."
+
+        # Filter targets
+        targets_with_attach = [t for t in email_targets if t.attach_file]
+        targets_without_attach = [t for t in email_targets if not t.attach_file]
+
+        # If no one is explicitly set to receive files, then everyone receives the file (fallback)
+        send_file_to_all_others = len(targets_with_attach) == 0
+
+        sent_count = 0
+
+        # 1. Targets explicitly requesting files
+        for target in targets_with_attach:
+            nm.send_email(target.target, subject, body_with_file, str(output_path))
+            sent_count += 1
+
+        # 2. Targets NOT requesting files
+        for target in targets_without_attach:
+            if send_file_to_all_others:
+                # Fallback: Send file anyway because no one else is getting it
+                nm.send_email(target.target, subject, body_with_file, str(output_path))
+            else:
+                # Send notification only
+                nm.send_email(target.target, subject, body_without_file, None)
+            sent_count += 1
+
+        return {"message": f"Ebook sent to {sent_count} recipients."}
+
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        logger.error(f"Email custom story error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/profiles", response_model=List[ProfileResponse])
