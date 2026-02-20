@@ -253,17 +253,52 @@ class EbookBuilder:
 
             # 1. Convert empty paragraphs to <br/>
             for p in soup.find_all('p'):
+                # Get text stripped of whitespace
                 text = p.get_text(strip=True)
-                # Check if it's truly empty or just whitespace
-                if not text and not p.find_all(True):
-                     # It's <p></p> or <p>   </p>
-                     # Replace with <br/>
+
+                # Check for children tags
+                children = p.find_all(True)
+
+                # Case 1: Truly empty or whitespace only: <p></p>, <p> </p>
+                if not text and not children:
                      new_tag = soup.new_tag('br')
                      p.replace_with(new_tag)
-                elif not text and all(str(c).strip() == '' for c in p.contents):
-                     # e.g. <p>&nbsp;</p>
-                     new_tag = soup.new_tag('br')
-                     p.replace_with(new_tag)
+                     continue
+
+                # Case 2: Contains only <br/> tags: <p><br/></p>, <p><br/><br/></p>
+                # If text is empty, check if all children are <br>
+                if not text and children:
+                    if all(child.name == 'br' for child in children):
+                        # Replace paragraph with sequence of <br/>
+                        # Since p.replace_with() takes one element, we can replace with the first br
+                        # and insert others after. Or simpler: make a new br for each child.
+
+                        # Just replacing with one <br/> is safer to reduce whitespace,
+                        # but let's be accurate: if <p><br><br></p>, that's 2 breaks inside a p.
+                        # We want to replace the P wrapper.
+
+                        # Strategy: unwrap? p.unwrap() removes p and keeps content.
+                        p.unwrap()
+                        continue
+
+                # Case 3: Deeply empty: <p><span> </span></p>, <p><span>&nbsp;</span></p>
+                # If text is empty and children are not only BRs.
+                if not text:
+                    # Check if all children are "empty" tags (span, div, etc with no text)
+                    # We already know text is empty (so children don't have text content recursively).
+                    # We just need to check if any child is an image or something significant.
+
+                    significant_tags = ['img', 'svg', 'iframe', 'video', 'audio', 'hr', 'input', 'button']
+                    is_significant = False
+                    for child in p.find_all(significant_tags):
+                        is_significant = True
+                        break
+
+                    if not is_significant:
+                        # Treat as empty
+                        new_tag = soup.new_tag('br')
+                        p.replace_with(new_tag)
+                        continue
 
             # 2. Stringify
             cleaned_html = str(soup)

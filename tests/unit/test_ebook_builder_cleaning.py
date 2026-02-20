@@ -48,5 +48,22 @@ class TestEbookBuilderCleaning(unittest.TestCase):
         self.assertNotIn("<br/><br/><br/>", cleaned)
         self.assertNotIn("&nbsp;", cleaned)
 
+    def test_clean_html_paragraph_br(self):
+        # <p><br/></p> should be treated as <br/>
+        html = "<p>P1</p><p><br/></p><p><br/></p><p><br/></p><p>P2</p>"
+        cleaned = self.builder._clean_html_content(html)
+        # Should be converted to <br/> <br/> <br/> then reduced
+        self.assertIn("<br/><br/>", cleaned)
+        self.assertNotIn("<p><br/></p>", cleaned)
+        self.assertNotIn("<br/><br/><br/>", cleaned)
+
+    def test_clean_html_empty_spans(self):
+        # <p><span> </span></p> should be treated as empty/br
+        html = "<p>P1</p><p><span> </span></p><p><span>&nbsp;</span></p><p>P2</p>"
+        cleaned = self.builder._clean_html_content(html)
+        self.assertIn("<br/><br/>", cleaned)
+        self.assertNotIn("<span> </span>", cleaned)
+        self.assertNotIn("<span>&nbsp;</span>", cleaned)
+
 if __name__ == '__main__':
     unittest.main()
