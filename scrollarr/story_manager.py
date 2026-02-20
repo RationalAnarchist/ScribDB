@@ -227,6 +227,9 @@ class StoryManager:
                 volume_number = chapter_data.get('volume_number', 1)
                 idx = chapter_data.get('index', i + 1)
 
+                tags_list = chapter_data.get('tags', [])
+                tags_str = ','.join(tags_list) if tags_list else None
+
                 if c_url not in existing_urls:
                     new_chapter = Chapter(
                         title=chapter_data['title'],
@@ -236,7 +239,8 @@ class StoryManager:
                         status='pending',
                         published_date=published_date,
                         volume_title=volume_title,
-                        volume_number=volume_number
+                        volume_number=volume_number,
+                        tags=tags_str
                     )
                     session.add(new_chapter)
                     new_chapters_count += 1
@@ -253,6 +257,9 @@ class StoryManager:
                          existing_chap.volume_title = volume_title
                     if volume_number and existing_chap.volume_number != volume_number:
                          existing_chap.volume_number = volume_number
+                    # Update tags
+                    if tags_str and existing_chap.tags != tags_str:
+                         existing_chap.tags = tags_str
 
             story.last_checked = func.now()
             if new_chapters_count > 0:
@@ -392,6 +399,9 @@ class StoryManager:
                         volume_number = chap_data.get('volume_number', 1)
                         idx = chap_data.get('index', i + 1)
 
+                        tags_list = chap_data.get('tags', [])
+                        tags_str = ','.join(tags_list) if tags_list else None
+
                         if chap_data['url'] not in existing_chapter_urls:
                             new_chapter = Chapter(
                                 title=chap_data['title'],
@@ -401,19 +411,13 @@ class StoryManager:
                                 status='pending',
                                 published_date=published_date,
                                 volume_title=volume_title,
-                                volume_number=volume_number
+                                volume_number=volume_number,
+                                tags=tags_str
                             )
                             session.add(new_chapter)
                             new_chapters_count += 1
                         else:
                              # Update date for existing chapters if missing
-                             # We need to find the chapter object.
-                             # optimizing by iterating existing is not efficient here as we only have URLs.
-                             # But we can query if needed. However, since we are iterating remote chapters,
-                             # we can match by URL if we had the objects.
-                             # For performance, maybe skip this or do a bulk update later?
-                             # Let's iterate story.chapters (which is loaded or lazy loaded)
-                             # Finding match:
                              for ec in story.chapters:
                                  if ec.source_url == chap_data['url']:
                                      if not ec.published_date and published_date:
@@ -425,6 +429,8 @@ class StoryManager:
                                          ec.volume_title = volume_title
                                      if volume_number and ec.volume_number != volume_number:
                                          ec.volume_number = volume_number
+                                     if tags_str and ec.tags != tags_str:
+                                         ec.tags = tags_str
                                      break
 
                     story.last_checked = func.now()
@@ -600,6 +606,9 @@ class StoryManager:
                 volume_number = chap_data.get('volume_number', 1)
                 idx = chap_data.get('index', i + 1)
 
+                tags_list = chap_data.get('tags', [])
+                tags_str = ','.join(tags_list) if tags_list else None
+
                 if chap_data['url'] not in existing_chapter_urls:
                     new_chapter = Chapter(
                         title=chap_data['title'],
@@ -609,7 +618,8 @@ class StoryManager:
                         status='pending',
                         published_date=published_date,
                         volume_title=volume_title,
-                        volume_number=volume_number
+                        volume_number=volume_number,
+                        tags=tags_str
                     )
                     session.add(new_chapter)
                     new_chapters_count += 1
@@ -625,6 +635,8 @@ class StoryManager:
                                  ec.volume_title = volume_title
                              if volume_number and ec.volume_number != volume_number:
                                  ec.volume_number = volume_number
+                             if tags_str and ec.tags != tags_str:
+                                 ec.tags = tags_str
                              break
 
             story.last_checked = func.now()
