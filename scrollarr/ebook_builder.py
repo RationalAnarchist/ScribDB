@@ -51,6 +51,9 @@ class EbookBuilder:
             chapter_title = chapter_data.get('title', f'Chapter {i+1}')
             chapter_content = chapter_data.get('content', '')
 
+            # Clean content to remove excessive whitespace
+            chapter_content = self._clean_html_content(chapter_content)
+
             # Create chapter file name
             file_name = f'chapter_{i+1}.xhtml'
 
@@ -239,6 +242,45 @@ class EbookBuilder:
         # Clean up double spaces etc
         content = content.strip()
         return content
+
+    def _clean_html_content(self, html_content: str) -> str:
+        """
+        Cleans HTML content for EPUB generation.
+        Removes excessive whitespace and collapses multiple breaks.
+        """
+        try:
+            soup = BeautifulSoup(html_content, 'html.parser')
+
+            # 1. Convert empty paragraphs to <br/>
+            for p in soup.find_all('p'):
+                text = p.get_text(strip=True)
+                # Check if it's truly empty or just whitespace
+                if not text and not p.find_all(True):
+                     # It's <p></p> or <p>   </p>
+                     # Replace with <br/>
+                     new_tag = soup.new_tag('br')
+                     p.replace_with(new_tag)
+                elif not text and all(str(c).strip() == '' for c in p.contents):
+                     # e.g. <p>&nbsp;</p>
+                     new_tag = soup.new_tag('br')
+                     p.replace_with(new_tag)
+
+            # 2. Stringify
+            cleaned_html = str(soup)
+
+            # 3. Normalize <br> tags
+            cleaned_html = re.sub(r'<br\s*/?>', '<br/>', cleaned_html, flags=re.IGNORECASE)
+
+            # 4. Collapse excessive <br/>
+            # We want max 2 <br/> (one empty line).
+            # So if we see 3 or more, replace with 2.
+            cleaned_html = re.sub(r'(<br/>\s*){3,}', '<br/><br/>', cleaned_html)
+
+            return cleaned_html
+        except Exception as e:
+            # Fallback if cleaning fails (should rarely happen)
+            print(f"Warning: HTML cleaning failed: {e}")
+            return html_content
 
     def compile_volume(self, story_id: int, volume_number: int) -> str:
         """
