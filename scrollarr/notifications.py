@@ -1,5 +1,6 @@
 import logging
 import smtplib
+import time
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.mime.application import MIMEApplication
@@ -70,16 +71,32 @@ class NotificationManager:
             except Exception as e:
                 logger.error(f"Failed to attach file {attachment_path}: {e}")
 
-        try:
-            server = smtplib.SMTP(smtp_host, smtp_port)
-            server.starttls()
-            if smtp_user and smtp_pass:
-                server.login(smtp_user, smtp_pass)
-            server.sendmail(from_email, target, msg.as_string())
-            server.quit()
-            logger.info(f"Email sent to {target}")
-        except Exception as e:
-            logger.error(f"Failed to send email to {target}: {e}")
+        max_retries = 3
+        retry_delay = 5  # seconds
+
+        for attempt in range(max_retries):
+            try:
+                server = smtplib.SMTP(smtp_host, smtp_port)
+                server.starttls()
+                if smtp_user and smtp_pass:
+                    server.login(smtp_user, smtp_pass)
+                server.sendmail(from_email, target, msg.as_string())
+                server.quit()
+                logger.info(f"Email sent to {target}")
+                return
+            except smtplib.SMTPException as e:
+                logger.warning(f"Email attempt {attempt+1}/{max_retries} failed: {e}")
+                if attempt < max_retries - 1:
+                    time.sleep(retry_delay * (attempt + 1))
+                else:
+                    logger.error(f"Failed to send email to {target} after {max_retries} attempts: {e}")
+            except Exception as e:
+                # Retry on connection errors too
+                logger.warning(f"Email attempt {attempt+1}/{max_retries} failed with error: {e}")
+                if attempt < max_retries - 1:
+                    time.sleep(retry_delay * (attempt + 1))
+                else:
+                    logger.error(f"Failed to send email to {target} after {max_retries} attempts: {e}")
 
     def send_webhook(self, target: str, message: str, context: Dict[str, Any]):
         # Sanitize context for JSON serialization

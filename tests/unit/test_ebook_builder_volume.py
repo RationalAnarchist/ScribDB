@@ -22,7 +22,8 @@ class TestEbookBuilderVolume(unittest.TestCase):
         mock_config_get.side_effect = lambda key, default=None: {
             'library_path': 'library',
             'filename_pattern': '{Title} - {Volume}',
-            'compiled_filename_pattern': '{Title} - {Volume}'
+            'compiled_filename_pattern': '{Title} - {Volume}',
+            'volume_name_format': '{Title} - {Volume}'
         }.get(key, default)
 
         # Setup mock session
