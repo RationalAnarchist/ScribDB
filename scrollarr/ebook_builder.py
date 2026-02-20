@@ -251,7 +251,7 @@ class EbookBuilder:
         try:
             soup = BeautifulSoup(html_content, 'html.parser')
 
-            # 1. Convert empty paragraphs to <br/>
+            # 1. Remove empty paragraphs entirely (relying on p margins for spacing)
             for p in soup.find_all('p'):
                 # Get text stripped of whitespace
                 text = p.get_text(strip=True)
@@ -261,24 +261,14 @@ class EbookBuilder:
 
                 # Case 1: Truly empty or whitespace only: <p></p>, <p> </p>
                 if not text and not children:
-                     new_tag = soup.new_tag('br')
-                     p.replace_with(new_tag)
+                     p.decompose()
                      continue
 
                 # Case 2: Contains only <br/> tags: <p><br/></p>, <p><br/><br/></p>
-                # If text is empty, check if all children are <br>
+                # These are often used as spacers. We remove them to avoid excessive gaps.
                 if not text and children:
                     if all(child.name == 'br' for child in children):
-                        # Replace paragraph with sequence of <br/>
-                        # Since p.replace_with() takes one element, we can replace with the first br
-                        # and insert others after. Or simpler: make a new br for each child.
-
-                        # Just replacing with one <br/> is safer to reduce whitespace,
-                        # but let's be accurate: if <p><br><br></p>, that's 2 breaks inside a p.
-                        # We want to replace the P wrapper.
-
-                        # Strategy: unwrap? p.unwrap() removes p and keeps content.
-                        p.unwrap()
+                        p.decompose()
                         continue
 
                 # Case 3: Deeply empty: <p><span> </span></p>, <p><span>&nbsp;</span></p>
@@ -296,8 +286,7 @@ class EbookBuilder:
 
                     if not is_significant:
                         # Treat as empty
-                        new_tag = soup.new_tag('br')
-                        p.replace_with(new_tag)
+                        p.decompose()
                         continue
 
             # 2. Stringify
@@ -307,9 +296,9 @@ class EbookBuilder:
             cleaned_html = re.sub(r'<br\s*/?>', '<br/>', cleaned_html, flags=re.IGNORECASE)
 
             # 4. Collapse excessive <br/>
-            # We want max 2 <br/> (one empty line).
-            # So if we see 3 or more, replace with 2.
-            cleaned_html = re.sub(r'(<br/>\s*){3,}', '<br/><br/>', cleaned_html)
+            # Collapse multiple <br/> into a single <br/> to avoid excessive gaps.
+            # Standard p margins provide one line break.
+            cleaned_html = re.sub(r'(<br/>\s*){2,}', '<br/>', cleaned_html)
 
             return cleaned_html
         except Exception as e:

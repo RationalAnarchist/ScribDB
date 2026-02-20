@@ -19,51 +19,48 @@ class TestEbookBuilderCleaning(unittest.TestCase):
         self.assertIn("<p>Text</p>", cleaned)
 
     def test_clean_html_excessive_br(self):
+        # <br> outside of p should be collapsed to single br
         html = "<p>P1</p><br><br><br><br><p>P2</p>"
         cleaned = self.builder._clean_html_content(html)
-        # Expect max 2 <br/>
-        # We check for exact sequence if possible, or absence of 3
-        self.assertIn("<br/><br/>", cleaned)
-        self.assertNotIn("<br/><br/><br/>", cleaned)
+        # Regex (br){2,} -> br
+        self.assertIn("<p>P1</p><br/><p>P2</p>", cleaned)
+        self.assertNotIn("<br/><br/>", cleaned)
 
     def test_clean_html_empty_paragraphs(self):
+        # Empty paragraphs should be removed entirely to rely on margins
         html = "<p>P1</p><p></p><p>&nbsp;</p><p>P2</p>"
         cleaned = self.builder._clean_html_content(html)
-        # Empty paragraphs converted to <br/>, then normalized
-        # <p></p> -> <br/>
-        # <p>&nbsp;</p> -> <br/>
-        # So we have <p>P1</p><br/><br/><p>P2</p>
-        self.assertIn("<br/><br/>", cleaned)
-        self.assertNotIn("<p></p>", cleaned)
-        self.assertNotIn("<p>&nbsp;</p>", cleaned)
+        # <p></p> -> Removed
+        # <p>&nbsp;</p> -> Removed
+        # Result: <p>P1</p><p>P2</p> (standard spacing)
+        self.assertIn("<p>P1</p><p>P2</p>", cleaned)
+        self.assertNotIn("<br/>", cleaned)
 
     def test_clean_html_mixed(self):
         html = "<p>P1</p><br><br><br><p>&nbsp;</p><p>P2</p>"
-        # <br><br><br> -> <br/><br/><br/>
-        # <p>&nbsp;</p> -> <br/>
-        # Total 4 <br/>
-        # Regex reduces to 2
+        # <br><br><br> -> <br/>
+        # <p>&nbsp;</p> -> Removed
+        # Result: <p>P1</p><br/><p>P2</p>
         cleaned = self.builder._clean_html_content(html)
-        self.assertIn("<br/><br/>", cleaned)
-        self.assertNotIn("<br/><br/><br/>", cleaned)
+        self.assertIn("<p>P1</p><br/><p>P2</p>", cleaned)
         self.assertNotIn("&nbsp;", cleaned)
+        self.assertNotIn("<br/><br/>", cleaned)
 
     def test_clean_html_paragraph_br(self):
-        # <p><br/></p> should be treated as <br/>
+        # <p><br/></p> should be removed (it's a spacer)
         html = "<p>P1</p><p><br/></p><p><br/></p><p><br/></p><p>P2</p>"
         cleaned = self.builder._clean_html_content(html)
-        # Should be converted to <br/> <br/> <br/> then reduced
-        self.assertIn("<br/><br/>", cleaned)
-        self.assertNotIn("<p><br/></p>", cleaned)
-        self.assertNotIn("<br/><br/><br/>", cleaned)
+        # All <p><br/></p> removed
+        # Result: <p>P1</p><p>P2</p>
+        self.assertIn("<p>P1</p><p>P2</p>", cleaned)
+        self.assertNotIn("<br/>", cleaned)
 
     def test_clean_html_empty_spans(self):
-        # <p><span> </span></p> should be treated as empty/br
+        # <p><span> </span></p> should be removed
         html = "<p>P1</p><p><span> </span></p><p><span>&nbsp;</span></p><p>P2</p>"
         cleaned = self.builder._clean_html_content(html)
-        self.assertIn("<br/><br/>", cleaned)
+        self.assertIn("<p>P1</p><p>P2</p>", cleaned)
         self.assertNotIn("<span> </span>", cleaned)
-        self.assertNotIn("<span>&nbsp;</span>", cleaned)
 
 if __name__ == '__main__':
     unittest.main()
