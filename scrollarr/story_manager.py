@@ -13,9 +13,13 @@ from .database import Story, Chapter, Source, SessionLocal, init_db, engine, Dow
 from .config import config_manager
 from .notifications import NotificationManager
 from .library_manager import LibraryManager
+import os
 import shutil
 import glob
 from pathlib import Path
+import hashlib
+import requests
+from bs4 import BeautifulSoup
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -574,6 +578,9 @@ class StoryManager:
                     filepath = self.library_manager.get_chapter_absolute_path(story, chapter)
                     self.library_manager.ensure_directories(filepath.parent)
 
+                    # Process images
+                    content = self._process_chapter_images(content, story, filepath)
+
                     with open(filepath, 'w', encoding='utf-8') as f:
                         f.write(content)
 
@@ -590,6 +597,106 @@ class StoryManager:
 
             # Save metadata
             self.save_metadata(story)
+
+        finally:
+            session.close()
+
+    def _process_chapter_images(self, content: str, story: Story, chapter_path: Path) -> str:
+        """
+        Internal method to find, download, and update images in chapter content.
+        """
+        try:
+            soup = BeautifulSoup(content, 'html.parser')
+            images = soup.find_all('img')
+            if images:
+                images_dir = self.library_manager.get_images_dir(story)
+                self.library_manager.ensure_directories(images_dir)
+
+                modified = False
+                for img in images:
+                    src = img.get('src')
+                    if not src or not src.startswith('http'):
+                        continue
+
+                    # Generate filename
+                    ext = 'jpg'
+                    if '.' in src.split('/')[-1]:
+                        ext_cand = src.split('/')[-1].split('.')[-1].split('?')[0]
+                        if len(ext_cand) <= 4 and ext_cand.isalnum():
+                            ext = ext_cand
+
+                    filename = f"img_{story.id}_{hashlib.md5(src.encode()).hexdigest()[:10]}.{ext}"
+                    local_img_path = images_dir / filename
+
+                    if not local_img_path.exists():
+                        try:
+                            # Simple download
+                            img_resp = requests.get(src, timeout=10, headers={'User-Agent': 'Mozilla/5.0'})
+                            if img_resp.status_code == 200:
+                                with open(local_img_path, 'wb') as f:
+                                    f.write(img_resp.content)
+                                logger.debug(f"Downloaded image {filename}")
+                            else:
+                                logger.warning(f"Failed to download image {src}: Status {img_resp.status_code}")
+                        except Exception as img_err:
+                            logger.warning(f"Error downloading image {src}: {img_err}")
+
+                    if local_img_path.exists():
+                        # Update src to relative path
+                        try:
+                            rel_path = os.path.relpath(local_img_path, chapter_path.parent)
+                            # Store original src for reference/debugging/safety
+                            img['data-original-src'] = src
+                            # Ensure forward slashes for HTML
+                            img['src'] = rel_path.replace(os.sep, '/')
+                            modified = True
+                        except ValueError:
+                            pass
+
+                if modified:
+                    return str(soup)
+        except Exception as soup_err:
+            logger.error(f"Error processing images for chapter: {soup_err}")
+
+        return content
+
+    def scan_story_images(self, story_id: int):
+        """
+        Scans all downloaded chapters of a story for missing images and downloads them.
+        """
+        session = SessionLocal()
+        try:
+            story = session.query(Story).filter(Story.id == story_id).first()
+            if not story:
+                raise ValueError(f"Story with ID {story_id} not found")
+
+            logger.info(f"Scanning images for story '{story.title}'...")
+
+            chapters = session.query(Chapter).filter(
+                Chapter.story_id == story_id,
+                Chapter.is_downloaded == True
+            ).all()
+
+            updated_count = 0
+            for chapter in chapters:
+                if not chapter.local_path or not os.path.exists(chapter.local_path):
+                    continue
+
+                try:
+                    with open(chapter.local_path, 'r', encoding='utf-8') as f:
+                        content = f.read()
+
+                    new_content = self._process_chapter_images(content, story, Path(chapter.local_path))
+
+                    if content != new_content:
+                        with open(chapter.local_path, 'w', encoding='utf-8') as f:
+                            f.write(new_content)
+                        updated_count += 1
+                except Exception as e:
+                    logger.error(f"Error scanning images for chapter {chapter.title}: {e}")
+
+            logger.info(f"Finished scanning images for '{story.title}'. Updated {updated_count} chapters.")
+            return updated_count
 
         finally:
             session.close()

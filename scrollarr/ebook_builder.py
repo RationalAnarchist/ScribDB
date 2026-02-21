@@ -4,15 +4,17 @@ from ebooklib import epub
 from typing import List, Dict, Optional
 from bs4 import BeautifulSoup
 import re
+from pathlib import Path
 from .library_manager import LibraryManager
 
 # ReportLab imports for PDF generation
 try:
     from reportlab.lib.pagesizes import A4, LETTER, A5, LEGAL, B5
-    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak, Image as ReportLabImage
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak, Image
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.lib.enums import TA_JUSTIFY, TA_CENTER
     from reportlab.lib.units import inch
+    ReportLabImage = Image
     HAS_REPORTLAB = True
 except ImportError:
     HAS_REPORTLAB = False
@@ -22,7 +24,7 @@ class EbookBuilder:
     def __init__(self):
         self.library_manager = LibraryManager()
 
-    def make_epub(self, title: str, author: str, chapters: List[Dict[str, str]], output_path: str, cover_path: Optional[str] = None, css: Optional[str] = None):
+    def make_epub(self, title: str, author: str, chapters: List[Dict[str, str]], output_path: str, cover_path: Optional[str] = None, css: Optional[str] = None, images: List[str] = None):
         """
         Generates an EPUB file from story metadata and chapter content.
         """
@@ -44,6 +46,30 @@ class EbookBuilder:
                 book.set_cover(file_name, cover_content)
             except Exception as e:
                 print(f"Warning: Could not set cover image. Error: {e}")
+
+        # Add images
+        if images:
+            for img_path in images:
+                try:
+                    filename = os.path.basename(img_path)
+                    with open(img_path, 'rb') as f:
+                        img_content = f.read()
+
+                    epub_img = epub.EpubImage()
+                    epub_img.file_name = f"images/{filename}"
+
+                    # Detect mime type
+                    ext = filename.split('.')[-1].lower()
+                    mime = 'image/jpeg'
+                    if ext == 'png': mime = 'image/png'
+                    elif ext == 'gif': mime = 'image/gif'
+                    elif ext == 'webp': mime = 'image/webp'
+
+                    epub_img.media_type = mime
+                    epub_img.content = img_content
+                    book.add_item(epub_img)
+                except Exception as e:
+                    print(f"Error adding image {img_path}: {e}")
 
         # Add chapters
         epub_chapters = []
@@ -143,7 +169,7 @@ class EbookBuilder:
             # ReportLab Paragraph supports simple XML-like tags: b, i, u, strike, super, sub
             # We need to sanitize the content to only allow these.
 
-            elements = soup.find_all(['p', 'h1', 'h2', 'h3', 'h4', 'div', 'br'])
+            elements = soup.find_all(['p', 'h1', 'h2', 'h3', 'h4', 'div', 'br', 'img'])
 
             if not elements:
                 # If no structure found, just dump text
@@ -157,6 +183,29 @@ class EbookBuilder:
                 for element in elements:
                     if element.name == 'br':
                         Story.append(Spacer(1, 12))
+                        continue
+
+                    if element.name == 'img':
+                        src = element.get('src')
+                        if src and os.path.exists(src):
+                            try:
+                                # Scale image if needed
+                                im = ReportLabImage(src)
+                                # Resize if too wide
+                                # A4 width is ~595. Margins 72*2 = 144. Content width ~450.
+                                im_width = im.drawWidth
+                                im_height = im.drawHeight
+
+                                max_width = 450
+                                if im_width > max_width:
+                                    ratio = max_width / im_width
+                                    im.drawWidth = max_width
+                                    im.drawHeight = im_height * ratio
+
+                                Story.append(im)
+                                Story.append(Spacer(1, 12))
+                            except Exception as e:
+                                print(f"Warning: Could not add image {src} to PDF: {e}")
                         continue
 
                     # Extract text with allowed tags
@@ -351,13 +400,54 @@ class EbookBuilder:
         """
         Internal method to compile a list of chapters based on story profile.
         """
+        # Determine Format
+        output_format = 'epub'
+        if story.profile:
+            output_format = story.profile.output_format.lower()
+
         # Prepare content
         epub_chapters = []
+        epub_images = []
+
         for chapter in chapters:
             if chapter.local_path and os.path.exists(chapter.local_path):
                 try:
                     with open(chapter.local_path, 'r', encoding='utf-8') as f:
                         content = f.read()
+
+                    # Process images
+                    soup = BeautifulSoup(content, 'html.parser')
+                    images = soup.find_all('img')
+                    modified = False
+
+                    if images:
+                        for img in images:
+                            src = img.get('src')
+                            if not src: continue
+
+                            # Resolve absolute path from relative
+                            chapter_dir = Path(chapter.local_path).parent
+                            try:
+                                abs_img_path = (chapter_dir / src).resolve()
+                            except Exception:
+                                continue
+
+                            if abs_img_path.exists():
+                                if str(abs_img_path) not in epub_images:
+                                    epub_images.append(str(abs_img_path))
+
+                                if output_format == 'pdf':
+                                    img['src'] = str(abs_img_path)
+                                    modified = True
+                                else:
+                                    # EPUB internal path
+                                    filename = abs_img_path.name
+                                    img['src'] = f"images/{filename}"
+                                    modified = True
+
+                    if modified:
+                        content = str(soup)
+
                     epub_chapters.append({'title': chapter.title, 'content': content})
                 except Exception as e:
                     print(f"Warning: Could not read chapter {chapter.title}: {e}")
@@ -368,11 +458,6 @@ class EbookBuilder:
             raise ValueError(f"No content found for {suffix}.")
 
         book_title = f"{story.title} - {suffix}"
-
-        # Determine Format
-        output_format = 'epub'
-        if story.profile:
-            output_format = story.profile.output_format.lower()
 
         # Use LibraryManager
         output_path = self.library_manager.get_compiled_absolute_path(story, suffix, ext=output_format, chapters=chapters, file_type=file_type)
@@ -390,6 +475,6 @@ class EbookBuilder:
                 page_size = story.profile.pdf_page_size
             self.make_pdf(book_title, story.author, epub_chapters, str(output_path), story.cover_path, css=profile_css, page_size=page_size)
         else:
-            self.make_epub(book_title, story.author, epub_chapters, str(output_path), story.cover_path, css=profile_css)
+            self.make_epub(book_title, story.author, epub_chapters, str(output_path), story.cover_path, css=profile_css, images=epub_images)
 
         return str(output_path)
