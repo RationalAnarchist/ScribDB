@@ -114,6 +114,16 @@ class TestImageProcessing(unittest.TestCase):
 
         self.assertTrue(html_written, "HTML content was not updated with local image path")
 
+        # Verify data-original-src
+        html_has_orig = False
+        for call in write_calls:
+            args, _ = call
+            content = args[0]
+            if isinstance(content, str) and 'data-original-src="http://example.com/image.jpg"' in content:
+                html_has_orig = True
+                break
+        self.assertTrue(html_has_orig, "HTML content should preserve original URL in data-original-src")
+
     @patch('scrollarr.ebook_builder.epub')
     @patch('scrollarr.ebook_builder.open', new_callable=mock_open)
     @patch('os.path.exists') # Patch os.path.exists used in _compile_chapters
@@ -183,6 +193,85 @@ class TestImageProcessing(unittest.TestCase):
             self.assertEqual(len(chapters_arg), 1)
             content_out = chapters_arg[0]['content']
             self.assertIn('src="images/img_1.jpg"', content_out)
+
+    @patch('scrollarr.story_manager.init_db')
+    @patch('scrollarr.story_manager.SessionLocal')
+    @patch('scrollarr.story_manager.requests.get')
+    @patch('scrollarr.story_manager.open', new_callable=mock_open)
+    @patch('pathlib.Path.exists')
+    @patch('os.makedirs')
+    @patch('os.path.exists')
+    @patch('scrollarr.story_manager.pkgutil.iter_modules')
+    def test_scan_story_images(self, mock_iter_modules, mock_os_exists, mock_makedirs, mock_path_exists, mock_file, mock_get, mock_session_cls, mock_init_db):
+        # Prevent provider discovery
+        mock_iter_modules.return_value = []
+
+        # Setup DB mocks
+        mock_session = MagicMock()
+        mock_session_cls.return_value = mock_session
+
+        story = MagicMock(spec=Story)
+        story.id = 1
+        story.title = "Test Story"
+
+        chapter = MagicMock(spec=Chapter)
+        chapter.id = 101
+        chapter.title = "Chapter 1"
+        chapter.local_path = "/tmp/lib/Test Story/chapters/1.html"
+        chapter.is_downloaded = True
+
+        # Mock query results
+        mock_session.query.return_value.filter.return_value.first.return_value = story
+        mock_session.query.return_value.filter.return_value.all.return_value = [chapter]
+
+        # Setup Manager
+        with patch('scrollarr.story_manager.SourceManager'):
+             manager = StoryManager()
+
+        # Mock file content (HTML with external image)
+        mock_file.return_value.read.return_value = '<html><body><img src="http://example.com/image.jpg"/></body></html>'
+
+        # Mock os.path.exists (for chapter file)
+        mock_os_exists.return_value = True
+
+        # Mock Path.exists logic for image
+        # 1. Image does NOT exist (triggers download)
+        # 2. Image DOES exist (triggers HTML update)
+        mock_path_exists.side_effect = [False, True]
+
+        # Mock requests
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.content = b'image_data'
+        mock_get.return_value = mock_resp
+
+        # Mock LibraryManager
+        images_dir = Path("/tmp/lib/Test Story/images")
+        manager.library_manager.get_images_dir = MagicMock(return_value=images_dir)
+
+        # Run
+        updated_count = manager.scan_story_images(1)
+
+        # Verify
+        self.assertEqual(updated_count, 1)
+        mock_get.assert_called_with("http://example.com/image.jpg", timeout=10, headers={'User-Agent': 'Mozilla/5.0'})
+
+        # Verify file writes
+        # 1. Image write
+        # 2. HTML update write
+        self.assertTrue(mock_file().write.called)
+
+        # Check if HTML update contains relative path
+        write_calls = mock_file().write.call_args_list
+        html_updated = False
+        for call in write_calls:
+            args, _ = call
+            content = args[0]
+            if isinstance(content, str) and 'src="../images/img_' in content:
+                html_updated = True
+                break
+
+        self.assertTrue(html_updated, "HTML should be updated with relative image path")
 
 if __name__ == '__main__':
     unittest.main()

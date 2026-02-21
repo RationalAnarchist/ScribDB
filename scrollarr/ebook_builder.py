@@ -10,10 +10,11 @@ from .library_manager import LibraryManager
 # ReportLab imports for PDF generation
 try:
     from reportlab.lib.pagesizes import A4, LETTER, A5, LEGAL, B5
-    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak, Image as ReportLabImage
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak, Image
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.lib.enums import TA_JUSTIFY, TA_CENTER
     from reportlab.lib.units import inch
+    ReportLabImage = Image
     HAS_REPORTLAB = True
 except ImportError:
     HAS_REPORTLAB = False

@@ -569,6 +569,23 @@ def retry_story(story_id: int):
         logger.error(f"Retry error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/api/story/{story_id}/scan-images")
+def scan_story_images(story_id: int):
+    """Scan existing chapters for images and download them."""
+    if not story_manager:
+        raise HTTPException(status_code=500, detail="StoryManager not initialized")
+    try:
+        # This could be long running, ideally background task
+        # For now, we run it synchronously but it might timeout for huge stories
+        # Future improvement: BackgroundTasks
+        count = story_manager.scan_story_images(story_id)
+        return {"message": f"Scanned story. Updated {count} chapters with local images.", "updated_count": count}
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        logger.error(f"Scan images error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.delete("/api/story/{story_id}")
 async def delete_story(story_id: int, delete_content: bool = False):
     """Delete a story."""
