@@ -1,6 +1,6 @@
 import os
 import sys
-from sqlalchemy import create_engine, Column, Integer, String, Boolean, ForeignKey, text, DateTime, inspect
+from sqlalchemy import create_engine, Column, Integer, String, Boolean, ForeignKey, text, DateTime, inspect, event
 from sqlalchemy.orm import declarative_base, relationship, sessionmaker, Session
 from sqlalchemy.sql import func
 from typing import Optional
@@ -127,6 +127,17 @@ if DB_URL.startswith("sqlite"):
     connect_args["check_same_thread"] = False
 
 engine = create_engine(DB_URL, connect_args=connect_args)
+
+if DB_URL.startswith("sqlite"):
+    @event.listens_for(engine, "connect")
+    def set_sqlite_pragma(dbapi_connection, connection_record):
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA journal_mode=WAL")
+        cursor.execute("PRAGMA synchronous=NORMAL")
+        cursor.execute("PRAGMA busy_timeout=30000")
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
+
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 def run_migrations():
