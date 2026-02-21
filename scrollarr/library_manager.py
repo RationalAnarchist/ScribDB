@@ -40,6 +40,10 @@ class LibraryManager:
         folder_name = self.format_string(template, {'Title': story.title, 'Author': story.author, 'Id': story.id})
         return self.get_library_root() / folder_name
 
+    def get_images_dir(self, story) -> Path:
+        """Returns the directory where images should be stored."""
+        return self.get_story_path(story) / "images"
+
     def get_chapter_dir(self, story, volume_number=None, volume_title=None) -> Path:
         """Returns the directory where chapters should be stored."""
         story_path = self.get_story_path(story)

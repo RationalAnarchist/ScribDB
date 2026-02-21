@@ -16,6 +16,9 @@ from .library_manager import LibraryManager
 import shutil
 import glob
 from pathlib import Path
+import hashlib
+import requests
+from bs4 import BeautifulSoup
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -573,6 +576,58 @@ class StoryManager:
                     # Determine path using LibraryManager
                     filepath = self.library_manager.get_chapter_absolute_path(story, chapter)
                     self.library_manager.ensure_directories(filepath.parent)
+
+                    # Process images
+                    try:
+                        soup = BeautifulSoup(content, 'html.parser')
+                        images = soup.find_all('img')
+                        if images:
+                            images_dir = self.library_manager.get_images_dir(story)
+                            self.library_manager.ensure_directories(images_dir)
+
+                            modified = False
+                            for img in images:
+                                src = img.get('src')
+                                if not src or not src.startswith('http'):
+                                    continue
+
+                                # Generate filename
+                                ext = 'jpg'
+                                if '.' in src.split('/')[-1]:
+                                    ext_cand = src.split('/')[-1].split('.')[-1].split('?')[0]
+                                    if len(ext_cand) <= 4 and ext_cand.isalnum():
+                                        ext = ext_cand
+
+                                filename = f"img_{story.id}_{hashlib.md5(src.encode()).hexdigest()[:10]}.{ext}"
+                                local_img_path = images_dir / filename
+
+                                if not local_img_path.exists():
+                                    try:
+                                        # Simple download
+                                        img_resp = requests.get(src, timeout=10, headers={'User-Agent': 'Mozilla/5.0'})
+                                        if img_resp.status_code == 200:
+                                            with open(local_img_path, 'wb') as f:
+                                                f.write(img_resp.content)
+                                            logger.debug(f"Downloaded image {filename}")
+                                        else:
+                                            logger.warning(f"Failed to download image {src}: Status {img_resp.status_code}")
+                                    except Exception as img_err:
+                                        logger.warning(f"Error downloading image {src}: {img_err}")
+
+                                if local_img_path.exists():
+                                    # Update src to relative path
+                                    try:
+                                        rel_path = os.path.relpath(local_img_path, filepath.parent)
+                                        # Ensure forward slashes for HTML
+                                        img['src'] = rel_path.replace(os.sep, '/')
+                                        modified = True
+                                    except ValueError:
+                                        pass
+
+                            if modified:
+                                content = str(soup)
+                    except Exception as soup_err:
+                        logger.error(f"Error processing images for chapter {chapter.title}: {soup_err}")
 
                     with open(filepath, 'w', encoding='utf-8') as f:
                         f.write(content)
