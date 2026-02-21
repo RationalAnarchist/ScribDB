@@ -72,11 +72,11 @@
             <thead class="bg-gray-700 text-gray-100 uppercase text-sm font-semibold">
                 <tr>
                     <th class="px-6 py-4">Title</th>
-                    <th class="px-6 py-4">Author</th>
+                    <th class="px-6 py-4 hidden md:table-cell">Author</th>
                     <th class="px-6 py-4 text-center">Progress</th>
                     <th class="px-6 py-4 text-center">Chapters</th>
-                    <th class="px-6 py-4 text-center">Status</th>
-                    <th class="px-6 py-4 text-center">Notify</th>
+                    <th class="px-6 py-4 text-center hidden md:table-cell">Status</th>
+                    <th class="px-6 py-4 text-center hidden md:table-cell">Notify</th>
                     <th class="px-6 py-4 text-right">Actions</th>
                 </tr>
             </thead>
@@ -86,12 +86,15 @@
                     <td class="px-6 py-4 font-medium text-white">
                         <div class="flex items-center gap-3">
                             <img src="{{ story.cover_path or 'https://via.placeholder.com/48x72?text=No+Cover' }}" alt="" class="w-8 h-12 object-cover rounded shadow-sm">
-                            <a href="/story/{{ story.id }}" class="hover:text-blue-400 font-semibold">{{ story.title }}</a>
+                            <div class="flex flex-col">
+                                <a href="/story/{{ story.id }}" class="hover:text-blue-400 font-semibold">{{ story.title }}</a>
+                                <span class="text-xs text-gray-400 md:hidden">{{ story.author }}</span>
+                            </div>
                         </div>
                     </td>
-                    <td class="px-6 py-4">{{ story.author }}</td>
+                    <td class="px-6 py-4 hidden md:table-cell">{{ story.author }}</td>
                     <td class="px-6 py-4">
-                        <div class="w-full min-w-[100px] bg-gray-600 rounded-full h-2">
+                        <div class="w-full min-w-[60px] md:min-w-[100px] bg-gray-600 rounded-full h-2">
                             <div id="list-progress-bar-{{ story.id }}" class="bg-blue-600 h-2 rounded-full" style="width: {{ story.progress }}%"></div>
                         </div>
                         <div id="list-progress-text-{{ story.id }}" class="text-xs text-center mt-1 text-gray-400">{{ story.progress }}%</div>
@@ -102,12 +105,12 @@
                             {% if story.failed_chapters > 0 %}({{ story.failed_chapters }} Failed){% endif %}
                         </div>
                     </td>
-                    <td class="px-6 py-4 text-center">
+                    <td class="px-6 py-4 text-center hidden md:table-cell">
                         <span id="list-status-{{ story.id }}" class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset {{ 'bg-green-400/10 text-green-400 ring-green-400/20' if story.status == 'Monitoring' else 'bg-gray-400/10 text-gray-400 ring-gray-400/20' }}">
                             {{ story.status }}
                         </span>
                     </td>
-                    <td class="px-6 py-4 text-center">
+                    <td class="px-6 py-4 text-center hidden md:table-cell">
                         <button onclick="toggleNotification(event, {{ story.id }})"
                                 class="notify-btn p-2 rounded hover:bg-gray-600 transition-colors inline-block"
                                 data-story-id="{{ story.id }}"
