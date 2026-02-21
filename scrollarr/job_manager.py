@@ -259,7 +259,7 @@ class JobManager:
                             builder = EbookBuilder()
 
                             batch = downloaded_chapters.get(story.id, [])
-                            batch.sort(key=lambda x: x.index if hasattr(x, 'index') else 0)
+                            batch.sort(key=lambda x: x.index if hasattr(x, 'index') and x.index is not None else -1)
 
                             total_chapters = session.query(Chapter).filter(Chapter.story_id == story.id).count()
 
