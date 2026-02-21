@@ -328,7 +328,7 @@ class StoryManager:
 
             # Add chapters
             if story.chapters:
-                sorted_chapters = sorted(story.chapters, key=lambda c: c.index)
+                sorted_chapters = sorted(story.chapters, key=lambda c: c.index if c.index is not None else -1)
                 for chapter in sorted_chapters:
                     local_path_rel = None
                     if chapter.local_path:
@@ -374,7 +374,7 @@ class StoryManager:
         if not story.chapters:
             return None
 
-        sorted_chapters = sorted(story.chapters, key=lambda c: c.index, reverse=True)
+        sorted_chapters = sorted(story.chapters, key=lambda c: c.index if c.index is not None else -1, reverse=True)
         if sorted_chapters:
             lc = sorted_chapters[0]
             return {
