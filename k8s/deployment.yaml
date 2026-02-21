@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: scrollarr
+  labels:
+    app: scrollarr
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: scrollarr
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: scrollarr
+    spec:
+      containers:
+        - name: scrollarr
+          # Replace with your image name if running from a fork or private registry
+          image: ghcr.io/rationalanarchist/scribdb:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8000
+          env:
+            - name: SCROLLARR_DATABASE_URL
+              value: "sqlite:////app/config/library.db"
+          volumeMounts:
+            - name: config-volume
+              mountPath: /app/config
+            - name: library-volume
+              mountPath: /app/library
+            - name: downloads-volume
+              mountPath: /app/saved_stories
+            - name: logs-volume
+              mountPath: /app/logs
+      volumes:
+        - name: config-volume
+          persistentVolumeClaim:
+            claimName: scrollarr-config-pvc
+        - name: library-volume
+          persistentVolumeClaim:
+            claimName: scrollarr-library-pvc
+        - name: downloads-volume
+          persistentVolumeClaim:
+            claimName: scrollarr-downloads-pvc
+        - name: logs-volume
+          emptyDir: {}

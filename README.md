@@ -117,6 +117,8 @@ Highlights:
 
 ## Deployment (Production)
 
+### Option 1: Systemd (Raspberry Pi / Linux)
+
 For a Raspberry Pi or always-on server, use `systemd`.
 
 **Create a service file `/etc/systemd/system/scrollarr.service`:**
@@ -143,6 +145,45 @@ sudo systemctl daemon-reload
 sudo systemctl enable scrollarr
 sudo systemctl start scrollarr
 ```
+
+### Option 2: Docker
+
+You can run Scrollarr using Docker. The image supports both `amd64` and `arm64` (Raspberry Pi) architectures.
+
+**Run with Docker:**
+```bash
+docker run -d \
+  --name scrollarr \
+  -p 8000:8000 \
+  -v $(pwd)/config:/app/config \
+  -v $(pwd)/library:/app/library \
+  -v $(pwd)/saved_stories:/app/saved_stories \
+  --restart unless-stopped \
+  ghcr.io/rationalanarchist/scribdb:latest
+```
+
+### Option 3: Kubernetes (K3s)
+
+Scrollarr is ready for deployment on Kubernetes clusters, including K3s on Raspberry Pis.
+
+1.  **Clone the repository** (to access manifest files).
+2.  **Apply the manifests:**
+
+    ```bash
+    kubectl apply -f k8s/pvc.yaml
+    kubectl apply -f k8s/deployment.yaml
+    kubectl apply -f k8s/service.yaml
+    ```
+
+    *Note: Check `k8s/pvc.yaml` and `k8s/deployment.yaml` to customize storage sizes, volume paths, and the image name.*
+    *If your image is hosted on a private registry, ensure you add `imagePullSecrets` to the `k8s/deployment.yaml` file.*
+
+3.  **Access the application:**
+    The service is exposed as `ClusterIP` by default. You may need to use `kubectl port-forward` or configure an Ingress/LoadBalancer depending on your cluster setup.
+
+    ```bash
+    kubectl port-forward service/scrollarr 8000:8000
+    ```
 
 ## Development
 
