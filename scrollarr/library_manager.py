@@ -136,7 +136,9 @@ class LibraryManager:
             'volName': vol_name,
             # Aliases for template consistency
             'Index': chap_num,
-            'Chapter': chap_name
+            'Chapter': chap_name,
+            'VolName': vol_name,
+            'VolNum': vol_num
         }
 
         filename = self.format_string(template, context)
@@ -149,6 +151,14 @@ class LibraryManager:
         directory = self.get_compiled_dir(story)
         filename = self.get_compiled_filename(story, suffix, ext, chapters, file_type)
         return directory / filename
+
+    def get_metadata_dir(self, story) -> Path:
+        """Returns the directory where metadata should be stored."""
+        return self.get_story_path(story) / "metadata"
+
+    def get_metadata_absolute_path(self, story) -> Path:
+        """Returns the full absolute path for the metadata file."""
+        return self.get_metadata_dir(story) / "metadata.json"
 
     def ensure_directories(self, path: Path):
         """Ensures the directory exists."""
