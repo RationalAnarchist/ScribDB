@@ -15,6 +15,7 @@ from .notifications import NotificationManager
 from .library_manager import LibraryManager
 import shutil
 import glob
+from pathlib import Path
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -267,6 +268,10 @@ class StoryManager:
 
             session.commit()
             logger.info(f"Story '{story.title}' processed. Added {new_chapters_count} new chapters.")
+
+            # Save metadata
+            self.save_metadata(story)
+
             return story.id
 
         except Exception as e:
@@ -290,6 +295,75 @@ class StoryManager:
             return chapters
         finally:
             session.close()
+
+    def save_metadata(self, story):
+        """
+        Saves story metadata and chapter status to a JSON file.
+        """
+        try:
+            # Construct story metadata
+            story_data = {
+                'id': story.id,
+                'title': story.title,
+                'author': story.author,
+                'source_url': story.source_url,
+                'provider_name': story.provider_name,
+                'status': story.status,
+                'description': story.description,
+                'tags': story.tags,
+                'rating': story.rating,
+                'language': story.language,
+                'publication_status': story.publication_status,
+                'profile_id': story.profile_id,
+                'last_updated': story.last_updated.isoformat() if story.last_updated else None,
+                'last_checked': story.last_checked.isoformat() if story.last_checked else None,
+                'chapters': []
+            }
+
+            story_path = self.library_manager.get_story_path(story)
+
+            # Add chapters
+            if story.chapters:
+                sorted_chapters = sorted(story.chapters, key=lambda c: c.index)
+                for chapter in sorted_chapters:
+                    local_path_rel = None
+                    if chapter.local_path:
+                        try:
+                            # Try to make path relative to story folder
+                            abs_path = Path(chapter.local_path).resolve()
+                            story_abs_path = story_path.resolve()
+                            if str(abs_path).startswith(str(story_abs_path)):
+                                local_path_rel = str(abs_path.relative_to(story_abs_path))
+                            else:
+                                local_path_rel = chapter.local_path # Keep absolute if outside
+                        except Exception:
+                            local_path_rel = chapter.local_path
+
+                    story_data['chapters'].append({
+                        'index': chapter.index,
+                        'title': chapter.title,
+                        'url': chapter.source_url,
+                        'status': chapter.status,
+                        'is_downloaded': chapter.is_downloaded,
+                        'local_path': local_path_rel,
+                        'volume_number': chapter.volume_number,
+                        'volume_title': chapter.volume_title,
+                        'published_date': chapter.published_date.isoformat() if chapter.published_date else None,
+                        'tags': chapter.tags
+                    })
+
+            # Get path
+            metadata_path = self.library_manager.get_metadata_absolute_path(story)
+            self.library_manager.ensure_directories(metadata_path.parent)
+
+            # Write file
+            with open(metadata_path, 'w', encoding='utf-8') as f:
+                json.dump(story_data, f, indent=4, ensure_ascii=False)
+
+            logger.debug(f"Saved metadata for story {story.id} to {metadata_path}")
+
+        except Exception as e:
+            logger.error(f"Failed to save metadata for story {story.id}: {e}")
 
     def _get_last_chapter_info(self, story):
         """Helper to extract last chapter info for optimization."""
@@ -449,6 +523,9 @@ class StoryManager:
 
                     session.commit()
 
+                    # Save metadata
+                    self.save_metadata(story)
+
                 except Exception as e:
                     logger.error(f"Error updating story '{story.title}': {e}")
                     session.rollback()
@@ -510,6 +587,10 @@ class StoryManager:
                     chapter.status = 'failed'
                     session.commit()
                     # Optionally continue to next chapter or break
+
+            # Save metadata
+            self.save_metadata(story)
+
         finally:
             session.close()
 
@@ -558,6 +639,9 @@ class StoryManager:
                 if provider:
                     logger.info(f"Updating metadata for: {story.title}")
                     self._update_metadata(story, provider)
+
+                    # Save metadata
+                    self.save_metadata(story)
 
             session.commit()
         except Exception as e:
@@ -654,6 +738,10 @@ class StoryManager:
                 logger.info(f"No new chapters for '{story.title}'")
 
             session.commit()
+
+            # Save metadata
+            self.save_metadata(story)
+
             return new_chapters_count
 
         except Exception as e:
